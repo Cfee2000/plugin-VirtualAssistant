@@ -1,0 +1,41 @@
+{
+  "userId":"12345",
+  "traits":{
+     "firstName":"John",
+     "lastName":"Doe",
+     "email":"john.doe@example.com",
+     "phone":"+1-555-555-5555",
+     "yearsLoyalty":"3",
+     "lifetimePurchaseValue":"$500",
+     "engagementFrequency":"weekly",
+     "referralCount":"5",
+     "daysSinceLastPurchase":"30",
+     "gender":"male",
+     "age":"35",
+     "address":{
+        "street":"123 Main St",
+        "city":"Anytown",
+        "state":"CA",
+        "zip":"12345",
+        "country":"US"
+     },
+     "preferences":{
+        "brands":[
+           "Owl Shoe",
+           "Acme Shoe"
+        ],
+        "categories":[
+           "running",
+           "athletic"
+        ],
+        "sizes":[
+           "10",
+           "10.5"
+        ],
+        "colors":[
+           "blue",
+           "black"
+        ]
+     }
+  }
+}

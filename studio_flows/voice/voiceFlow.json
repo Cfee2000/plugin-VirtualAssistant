@@ -1,0 +1,111 @@
+{
+    "description": "A New Flow",
+    "states": [
+      {
+        "name": "Trigger",
+        "type": "trigger",
+        "transitions": [
+          {
+            "event": "incomingMessage"
+          },
+          {
+            "next": "connect_virtual_agent_1",
+            "event": "incomingCall"
+          },
+          {
+            "event": "incomingConversationMessage"
+          },
+          {
+            "event": "incomingRequest"
+          },
+          {
+            "event": "incomingParent"
+          }
+        ],
+        "properties": {
+          "offset": {
+            "x": 0,
+            "y": 0
+          }
+        }
+      },
+      {
+        "name": "connect_virtual_agent_1",
+        "type": "connect-virtual-agent-v2",
+        "transitions": [
+          {
+            "event": "completed"
+          },
+          {
+            "next": "send_to_flex_1",
+            "event": "live-agent-handoff"
+          },
+          {
+            "event": "hangup"
+          },
+          {
+            "next": "say_play_1",
+            "event": "failed"
+          }
+        ],
+        "properties": {
+          "offset": {
+            "x": 230,
+            "y": 420
+          },
+          "status_callback_method": "POST",
+          "configurations": [],
+          "status_callback": "",
+          "connector_name": "FlexCCAIPlugin",
+          "parameters": []
+        }
+      },
+      {
+        "name": "send_to_flex_1",
+        "type": "send-to-flex",
+        "transitions": [
+          {
+            "event": "callComplete"
+          },
+          {
+            "event": "failedToEnqueue"
+          },
+          {
+            "event": "callFailure"
+          }
+        ],
+        "properties": {
+          "offset": {
+            "x": 50,
+            "y": 770
+          },
+          "workflow": "",
+          "channel": "",
+          "attributes": "{ \"AgentHandoffParameters\" : \"{{widgets.connect_virtual_agent_1.VirtualAgentProviderData.AgentHandoffParameters}}\", \"VirtualAgentStatus\" : \" {{widgets.connect_virtual_agent_1.VirtualAgentStatus}}\", \"VirtualAgentProviderData\" : \"{{widgets.connect_virtual_agent_1.VirtualAgentProviderData}}\" \n}"
+        }
+      },
+      {
+        "name": "say_play_1",
+        "type": "say-play",
+        "transitions": [
+          {
+            "event": "audioComplete"
+          }
+        ],
+        "properties": {
+          "voice": "Polly.Olivia-Neural",
+          "offset": {
+            "x": 570,
+            "y": 800
+          },
+          "loop": 1,
+          "say": "Something went wrong. Sorry. Goodbye.",
+          "language": "en-AU"
+        }
+      }
+    ],
+    "initial_state": "Trigger",
+    "flags": {
+      "allow_concurrent_calls": true
+    }
+  }
