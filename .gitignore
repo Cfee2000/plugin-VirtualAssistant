@@ -1,5 +1,8 @@
+#Google Service Account Credential
+*-key.json
+
 # Local backup files
-*.copy.js
+*.copy*
 
 # Logs
 logs
