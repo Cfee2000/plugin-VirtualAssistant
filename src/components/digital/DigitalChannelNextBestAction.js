@@ -25,58 +25,52 @@ const DigitalChannelNextBestAction = (props) => {
 	const fetchNextBestAction = async (transcript, customerName, workerName) => {
 		console.log("RETRIEVE NEXT BEST ACTION");
 		console.log(transcript);
+		console.log("CustomerName");
+		console.log(customerName);
 		let retries = 0;
 		try {
-			const promptToUse = `The following JSON data, delimited by the % symbol, represents customer data associated to Geoff Lawson that you must be aware of during your conversation:
-			%traits: {
-				Cases: {
-					"00001027": {
-						CaseStatus: "Open",
-						SalesforceCase: "00001027",
-						Subject: "Bluetooth Support",
-						Vehicle: "Owl Sedan",
-					},
-				},
-				Vehicles: {
-					SUV: {
-						Name: "Owl SUV",
-						VIN: "1J4GZ58S7VC697710",
-						Year: 2010,
-					},
-					Sedan: {
-						Name: "Owl Sedan",
-						VIN: "4T1SK12E1NU028452",
-						Year: 2022,
-					},
-					Truck: {
-						Name: "Owl Truck",
-						VIN: "JH4KA8250MC004002",
-						Year: 2019,
-					},
-				},
-				city: "San Francisco",
-				email: "glawson@twilio.com",
-				first_order_date: "2010-10-15",
-				firstname: "Geoff",
-				last_campaign_response: "Owl Dealer Subsription Offer",
-				last_case_number: "00001027",
-				last_crm_case: "00001027",
-				last_salesforce_case: "00001027",
-				last_sentiment_score: 4,
-				last_service_scheduled: "2022-02-10",
-				last_vehicle_case: "Owl Sedan",
-				lastname: "Lawson",
-				loyalty: "12 Years",
-				mobile: "17632291691",
-				most_frequent_sales_dealer: "Owl Dealer",
-				most_frequent_service_dealer: "Bunches of Owls",
-				name: "Geoff Lawson",
-				next_best_action: "trade incentives",
-				phone: "17632291691",
-				state: "California",
-				total_cases_completed: 3,
-				zip: "94105",
-			}%
+			const promptToUse = `The following JSON data, delimited by the % symbol, represents customer data associated to ${customerName} that you must be aware of during your conversation:
+			%{
+				"traits":{
+				   "firstName":"John",
+				   "lastName":"Doe",
+				   "fullName" : "John Doe",
+				   "email":"john.doe@example.com",
+				   "phone":"+1-555-555-5555",
+				   "yearsLoyalty":"3",
+				   "lifetimePurchaseValue":"$500",
+				   "engagementFrequency":"weekly",
+				   "referralCount":"5",
+				   "daysSinceLastPurchase":"30",
+				   "gender":"male",
+				   "age":"35",
+				   "address":{
+					  "street":"123 Main St",
+					  "city":"Anytown",
+					  "state":"CA",
+					  "zip":"12345",
+					  "country":"US"
+				   },
+				   "preferences":{
+					  "brands":[
+						 "Owl Shoe",
+						 "Acme Shoe"
+					  ],
+					  "categories":[
+						 "running",
+						 "athletic"
+					  ],
+					  "sizes":[
+						 "10",
+						 "10.5"
+					  ],
+					  "colors":[
+						 "blue",
+						 "black"
+					  ]
+				   }
+				}
+			 }%
 			
 			Full Transcript, delimited by the "%" symbol: \n%${transcript}%\n\n You are ${workerName}, a Customer Service Representative, and are currently connected to ${customerName} live. As you can see from the transcript, ${customerName} was previously connected to a Dialogflow CX Virtual Agent that wasn’t fully able to resolve their inquiry. You need to pick up where the transcript leaves off, and provide an intelligent, empathetic, and solution oriented approach to your next response to ${customerName}. You should be extremely cognizant of the information ${customerName} has already shared with either the Virtual Agent or yourself, and absolutely do not ask the customer for information that is already available in the transcript. With all that in mind, respond to ${customerName} with the next best action, and do so in the first person without prefixing your response.`;
 			let response = await fetch("https://api.openai.com/v1/completions", {
@@ -225,7 +219,9 @@ const DigitalChannelNextBestAction = (props) => {
 			try {
 				let prevTranscript = transcript;
 				const { author, body } = message;
-				if (author.startsWith("+")) {
+				//We will use a uuidRegex to check for a WebChat identity as the author of the message in the logic below
+				const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
+				if (author.startsWith("+") || uuidRegex.test(author)) {
 					setIsLoading(true);
 					console.log("MESSAGE IS FROM THE CUSTOMER");
 					prevTranscript += `${props.customerName}: ${body}\n`;
