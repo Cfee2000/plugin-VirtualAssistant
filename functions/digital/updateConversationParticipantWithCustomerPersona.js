@@ -9,6 +9,7 @@ exports.handler = async function (context, event, callback) {
 		traits: {
 			firstName: "John",
 			lastName: "Doe",
+			fullName: "John Doe",
 			email: "john.doe@example.com",
 			phone: "+1-555-555-5555",
 			yearsLoyalty: "3",
@@ -63,7 +64,7 @@ exports.handler = async function (context, event, callback) {
 
 			const response = new Twilio.Response();
 			response.setBody(JSON.stringify(attributes));
-			callback(null, response);
+			callback(null, attributes);
 		} else {
 			console.log("Participant not found");
 			throw new Error("Participant not found");

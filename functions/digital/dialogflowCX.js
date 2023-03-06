@@ -163,7 +163,15 @@ exports.handler = async function (context, event, callback) {
 				payload.channel = message.channel;
 			}
 			if (message.payload) {
-				payload.payload = message.payload;
+				//We need to transform this payload so that it can be used by the Webchat React Code (see https://github.com/dremin/retail-webchat-react-app/blob/main/src/components/MessageBubble.tsx)
+				payload.transformedPayload = {
+					options: message.payload.fields.options.listValue.values.map(
+						(item) => ({
+							text: item.structValue.fields.text.stringValue,
+						})
+					),
+					type: message.payload.fields.type.stringValue,
+				};				
 			}
 			if (message.liveAgentHandoff) {
 				payload.liveAgentHandoff = message.liveAgentHandoff;
@@ -194,25 +202,10 @@ exports.handler = async function (context, event, callback) {
 
 		console.log("Payload");
 		console.log(payload);
-		const parsedObjectsForStudio = {
-			sessionID: payload.sessionID,
-			virtualAgentReply: payload.virtualAgentReply,
-			currentPage: payload.currentPage,
-			liveAgentHandoff: payload.liveAgentHandoff,
-			};
-			if (payload.payload) {
-				parsedObjectsForStudio.transformedPayload = {
-					options: payload.payload.fields.options.listValue.values.map(
-						(item) => ({
-							text: item.structValue.fields.text.stringValue,
-						})
-					),
-					type: payload.payload.fields.type.stringValue,
-				};
-			}
+
     const twilioResponse = new Twilio.Response();
-    twilioResponse.setBody(JSON.stringify(payload));
-    callback(null, parsedObjectsForStudio);
+	twilioResponse.setBody(JSON.stringify(payload));
+    callback(null, payload);
 	} catch (error) {
 		console.error(error);
 		callback(error);
