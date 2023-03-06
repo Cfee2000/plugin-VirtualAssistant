@@ -51,9 +51,12 @@ const DigitalChannelVirtualAssistant = (props) => {
 				const messageJsonArray = [];
 				const messageJsonArrayAfterHandoff = [];
 				let foundHandoff = false;
+				//We will use a uuidRegex to check for a WebChat identity as the author of the message in the logic below
+				const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
 				for (let i = 0; i < messages.length; i++) {
 					const message = messages[i];
 					if (!foundHandoff) {
+						//The messages we care about for generating (before live agent handoff) the transcript are only the messages sent by the VirtualAgent, this is because those messages have the critical data we need to display, including the customer's message that prompted it's reply, allow us to reconstruct the full transcript of the Virtual Agent Conversation
 						if (message.author !== "Dialogflow CX Virtual Agent") {
 							continue;
 						}
@@ -78,12 +81,13 @@ const DigitalChannelVirtualAssistant = (props) => {
 						messageJsonArray.push(messageJson);
 					} else {
 						const messageAfterHandoffJson = {
-							author: message.author.startsWith("+")
-								? ""
-								: props.task._task._worker.attributes.full_name,
+							//Set the author to blank if its a phone number (SMS/Whatsapp customer) or a UUID (webchat customer). If it's not either, we assume it to be the Flex worker, which will help us later in the construction of pTranscript and nbaTranscript, since for the customer we will use "customerName", not author, in building the transcript
+							author: message.author.startsWith("+") || uuidRegex.test(message.author)
+							  ? ""
+							  : props.task._task._worker.attributes.full_name,
 							body: message.body,
 							customerName: props.task.attributes.customerName,
-						};
+						  };
 						messageJsonArrayAfterHandoff.push(messageAfterHandoffJson);
 					}
 					if (message.attributes.liveAgentHandoff) {
