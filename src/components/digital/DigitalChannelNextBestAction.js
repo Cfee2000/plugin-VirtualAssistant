@@ -79,12 +79,11 @@ const DigitalChannelNextBestAction = (props) => {
 			}%
 			
 			Full Transcript, delimited by the "%" symbol: \n%${transcript}%\n\n You are ${workerName}, a Customer Service Representative, and are currently connected to ${customerName} live. As you can see from the transcript, ${customerName} was previously connected to a Dialogflow CX Virtual Agent that wasn’t fully able to resolve their inquiry. You need to pick up where the transcript leaves off, and provide an intelligent, empathetic, and solution oriented approach to your next response to ${customerName}. You should be extremely cognizant of the information ${customerName} has already shared with either the Virtual Agent or yourself, and absolutely do not ask the customer for information that is already available in the transcript. With all that in mind, respond to ${customerName} with the next best action, and do so in the first person without prefixing your response.`;
-			const apiKey = "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";
 			let response = await fetch("https://api.openai.com/v1/completions", {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
-					Authorization: `Bearer ${apiKey}`,
+					Authorization: `Bearer ${process.env.REACT_APP_OPEN_AI_APIKEY}`,
 				},
 				body: JSON.stringify({
 					prompt: promptToUse,
@@ -173,13 +172,12 @@ const DigitalChannelNextBestAction = (props) => {
 
 	const fetchSummary = async (updatedTranscript) => {
 		const prompt = `In 10 sentences or less, provide a summarization of the following transcript: ${updatedTranscript}`;
-		const apiKey = "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";
 
 		const response = await fetch("https://api.openai.com/v1/completions", {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
-				Authorization: `Bearer ${apiKey}`,
+				Authorization: `Bearer ${process.env.REACT_APP_OPEN_AI_APIKEY}`,
 			},
 			body: JSON.stringify({
 				prompt: prompt,

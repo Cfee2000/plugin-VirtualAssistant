@@ -55,13 +55,12 @@ const DigitalChannelSummary = (props) => {
 
 	const fetchSummary = async () => {
 		const prompt = `In 5 sentences or less, provide a summarization of the following transcript between a virtual agent and a customer: ${props.promptTranscript}`;
-		const apiKey = "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";
 
 		const response = await fetch("https://api.openai.com/v1/completions", {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
-				Authorization: `Bearer ${apiKey}`,
+				Authorization: `Bearer ${process.env.REACT_APP_OPEN_AI_APIKEY}`,
 			},
 			body: JSON.stringify({
 				prompt: prompt,

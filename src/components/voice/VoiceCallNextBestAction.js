@@ -54,13 +54,12 @@ const VoiceCallNextBestAction = (props) => {
 
 		const fetchSummary = async () => {
 			const prompt = `Full Transcript, delimited by the "%" symbol: \n%${props.promptTranscript}%\n\n You are John Doe, a Customer Service Representative, and are currently connected to Brent Jones live. As you can see from the transcript, Brent was previously connected to a Virtual Agent that wasn’t fully able to resolve his inquiry. You need to pick up where the transcript leaves off, and provide an intelligent, empathetic, and solution oriented approach to your next response to Brent. You should be extremely cognizant of the information Brent has already shared with either the Virtual Agent or yourself, and absolutely do not ask Brent for information that is already available in the transcript. With all that in mind, respond to Brent with the next best action, and do so in the first person without prefixing your response.`;
-			const apiKey = "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";
 
 			const response = await fetch("https://api.openai.com/v1/completions", {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
-					Authorization: `Bearer ${apiKey}`,
+					Authorization: `Bearer ${process.env.REACT_APP_OPEN_AI_APIKEY}`,
 				},
 				body: JSON.stringify({
 					prompt: prompt,
