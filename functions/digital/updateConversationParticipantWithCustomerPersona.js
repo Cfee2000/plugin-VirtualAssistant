@@ -7,17 +7,17 @@ exports.handler = async function (context, event, callback) {
 	const attributes = {
 		userId: "12345",
 		traits: {
-			firstName: "John",
-			lastName: "Doe",
-			fullName: "John Doe",
-			email: "john.doe@example.com",
+			firstName: "Mary",
+			lastName: "Doe Jr.",
+			fullName: "Mary Doe Jr.",
+			email: "mary.doe@example.com",
 			phone: "+1-555-555-5555",
 			yearsLoyalty: "3",
 			lifetimePurchaseValue: "$500",
 			engagementFrequency: "weekly",
 			referralCount: "5",
 			daysSinceLastPurchase: "30",
-			gender: "male",
+			gender: "female",
 			age: "35",
 			address: {
 				street: "123 Main St",
@@ -30,7 +30,7 @@ exports.handler = async function (context, event, callback) {
 				brands: ["Owl Shoe", "Acme Shoe"],
 				categories: ["running", "athletic"],
 				sizes: ["10", "10.5"],
-				colors: ["blue", "black"],
+				colors: ["purple", "white"],
 			},
 		},
 	};
