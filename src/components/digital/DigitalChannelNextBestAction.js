@@ -22,68 +22,103 @@ const DigitalChannelNextBestAction = (props) => {
 	const [summary, setSummary] = useState(null);
 	const [isLoadingSummary, setIsLoadingSummary] = useState(false);
 
+	function translatePromptToChatGPT(transcript, customerName, originalAssistant, liveAssistant) {
+		if (!transcript || !customerName || !originalAssistant || !liveAssistant
+		) {
+			throw new Error("Missing required parameter");
+		}
+		const systemMessage1 = `${customerName} sends an inbound SMS to the Owl Car Customer Care Virtual Agent to start a conversation from the company's webchat on their main website`;
+		const systemMessage2 = `You are ${liveAssistant}, an Owl Shoes concierge. You are about to address ${customerName} live for the first time after they interacted with the Dialogflow CX Virtual Agent, so your response should take into account their conversation with the Virtual Agent and what their last request was. Provide the next best action as appropriate for taking over as a live agent. It's important to remember that you are an Owl Shoes concierge providing an intelligent, empathetic, and solution oriented approach. You can help with things like reviewing and placing orders, product recommendations, returns and exchanges, complaints and tickets, pricing and promotions, delivery updates and modifications. Owl Shoes sells shoes, nothing else, and therefore you cannot sell anything other than shoes as an Owl Shoes Concierge.`;
+		const systemMessage3 = `${liveAssistant} will provide the next best action as the assistant role. ${liveAssistant} is an Owl Shoes concierge. ${liveAssistant} can help with things like reviewing and placing orders, product recommendations, returns and exchanges, complaints and tickets, pricing and promotions, delivery updates and modifications. Owl Shoes sells shoes, nothing else, and therefore ${liveAssistant} cannot sell anything other than shoes as an Owl Shoes Concierge.`;
+		
+		const lines = transcript.split("\n").filter((line) => line.trim() !== "");
+		const translatedLines = [];
+		let currentAssistant = originalAssistant;
+		let hasLiveAssistantStarted = false;
+	
+		// Add system message 1 at the beginning
+		translatedLines.push({ role: "system", content: systemMessage1 });
+	
+		for (let i = 0; i < lines.length; i++) {
+			const line = lines[i];
+	
+			if (line.startsWith(customerName)) {
+				// User message
+				translatedLines.push({ role: "user", content: line });
+				if (hasLiveAssistantStarted) {
+					translatedLines.push({ role: "system", content: systemMessage2 });
+				}
+			} else if (line.startsWith(originalAssistant)) {
+				// Original assistant message
+				const messageParts = line.split(": ");
+				if (messageParts.length < 2) {
+					throw new Error("Invalid assistant message format");
+				}
+				translatedLines.push({
+					role: "assistant",
+					content: `${originalAssistant}: ${messageParts[1]}`,
+				});
+				if (line.includes(liveAssistant)) {
+					currentAssistant = liveAssistant;
+				}
+			} else if (line.startsWith(liveAssistant)) {
+				hasLiveAssistantStarted = true;
+				// Live assistant message
+				const messageParts = line.split(": ");
+				if (messageParts.length < 2) {
+					throw new Error("Invalid assistant message format");
+				}
+				translatedLines.push({
+					role: "assistant",
+					content: `${liveAssistant}: ${messageParts[1]}`,
+				});
+			} else {
+				//Assume if we get here, then either the ":" delimiter was not found, or the names don't match, which would only happen if OpenAI returns a response that doesn't stay within the format we expect for liveAssitant. So, if it does happen, we'll render as if OpenAI made a mistake and the line is for the liveAssistant
+				if (!line.includes(": ")) {
+					//If we don't find the delimiter, then just print the line and add our liveAssistant as the prefix
+					translatedLines.push({
+						role: "assistant",
+						content: `${liveAssistant}: ${line}`,
+					});
+				} else {
+					//If we do find the delimiter, this assumes there was no previous match in the if/else block on customerName, originalAssistant, or liveAssistant, so, we'll just assume liveAssisant here
+					const messageParts = line.split(": ");
+					translatedLines.push({
+						role: "assistant",
+						content: `${liveAssistant}: ${messageParts[1]}`,
+					});
+				}
+			}
+		}
+	
+        if (!hasLiveAssistantStarted || translatedLines[translatedLines.length - 1].content.startsWith(`${liveAssistant}:`)) {
+            //Added the OR condition where, if the last line in the array is from the liveAssistant, we need to ensure the next best action does not come from the perspective of the customer, so we will clarify that by adding the "system" line here
+            //If we looped through the transcript and there was no message from the live agent, than we can assume this is the first time the live agent will introduce themselves, and thus need to add the system message appropriate for this
+            translatedLines.push({ role: "system", content: systemMessage3 });
+        }
+	
+		return translatedLines;
+	}
+
 	const fetchNextBestAction = async (transcript, customerName, workerName) => {
 		console.log("RETRIEVE NEXT BEST ACTION");
 		console.log(transcript);
-		console.log("CustomerName");
-		console.log(customerName);
 		let retries = 0;
 		try {
-			const promptToUse = `The following JSON data, delimited by the % symbol, represents customer data associated to ${customerName} that you must be aware of during your conversation:
-			%{
-				"traits":{
-				   "firstName":"John",
-				   "lastName":"Doe",
-				   "fullName" : "John Doe",
-				   "email":"john.doe@example.com",
-				   "phone":"+1-555-555-5555",
-				   "yearsLoyalty":"3",
-				   "lifetimePurchaseValue":"$500",
-				   "engagementFrequency":"weekly",
-				   "referralCount":"5",
-				   "daysSinceLastPurchase":"30",
-				   "gender":"male",
-				   "age":"35",
-				   "address":{
-					  "street":"123 Main St",
-					  "city":"Anytown",
-					  "state":"CA",
-					  "zip":"12345",
-					  "country":"US"
-				   },
-				   "preferences":{
-					  "brands":[
-						 "Owl Shoe",
-						 "Acme Shoe"
-					  ],
-					  "categories":[
-						 "running",
-						 "athletic"
-					  ],
-					  "sizes":[
-						 "10",
-						 "10.5"
-					  ],
-					  "colors":[
-						 "blue",
-						 "black"
-					  ]
-				   }
-				}
-			 }%
 			
-			Full Transcript, delimited by the "%" symbol: \n%${transcript}%\n\n You are ${workerName}, a Customer Service Representative, and are currently connected to ${customerName} live. As you can see from the transcript, ${customerName} was previously connected to a Dialogflow CX Virtual Agent that wasn’t fully able to resolve their inquiry. You need to pick up where the transcript leaves off, and provide an intelligent, empathetic, and solution oriented approach to your next response to ${customerName}. You should be extremely cognizant of the information ${customerName} has already shared with either the Virtual Agent or yourself, and absolutely do not ask the customer for information that is already available in the transcript. With all that in mind, respond to ${customerName} with the next best action, and do so in the first person without prefixing your response.`;
-			let response = await fetch("https://api.openai.com/v1/completions", {
+			const convertedTranscript = translatePromptToChatGPT(transcript, customerName, "Dialogflow CX Virtual Agent", workerName);
+			console.log("CONVERTED TRANSCRIPT");
+			console.log(convertedTranscript);
+			let response = await fetch("https://api.openai.com/v1/chat/completions", {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
 					Authorization: `Bearer ${process.env.REACT_APP_OPEN_AI_APIKEY}`,
 				},
 				body: JSON.stringify({
-					prompt: promptToUse,
-					max_tokens: 1000,
+					messages: convertedTranscript,
 					temperature: 0.8,
-					model: "text-davinci-003",
+					model: "gpt-3.5-turbo",
 				}),
 			});
 
@@ -94,9 +129,12 @@ const DigitalChannelNextBestAction = (props) => {
 			}
 
 			let data = await response.json();
+			console.log("DATA");
+			console.log(data);
+			//console.log(response.body);
 
 			while (
-				!data.choices[0].text &&
+				!data.choices[0].message &&
 				retries < process.env.REACT_APP_MAX_RETRIES
 			) {
 				console.log(
@@ -105,14 +143,30 @@ const DigitalChannelNextBestAction = (props) => {
 				await new Promise((resolve) => {
 					setTimeout(resolve, process.env.REACT_APP_RETRY_DELAY_MS);
 				});
-				response = await fetchSummary(transcript);
+				response = await fetch("https://api.openai.com/v1/chat/completions", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${process.env.REACT_APP_OPEN_AI_APIKEY}`,
+					},
+					body: JSON.stringify({
+						messages: convertedTranscript,
+						temperature: 0.8,
+						model: "gpt-3.5-turbo",
+					}),
+				});
 				data = await response.json();
 				retries++;
 				console.log("RETRIES: " + retries);
 			}
 
-			if (data.choices[0].text) {
-				return data.choices[0].text;
+			if (data.choices[0].message) {
+				//We only want to return to the Flex UI the part of the message, if applicable, after the ":" delimiter
+				const messageParts = data.choices[0].message.content.split(": ");
+				if (messageParts.length < 2) {
+					return data.choices[0].message.content;
+				}
+				return messageParts[1];
 			} else {
 				throw new Error(
 					"Failed to get digital channel next best action from OpenAI after retries"
@@ -273,7 +327,7 @@ const DigitalChannelNextBestAction = (props) => {
 	const fetchNewNextBestAction = async (transcript) => {
 		try {
 			setIsLoading(true);
-			const data = await fetchNextBestAction(transcript);
+			const data = await fetchNextBestAction(transcript, props.customerName, props.workerName);
 			setNextBestAction(data);
 		} catch (error) {
 			console.error(error);
