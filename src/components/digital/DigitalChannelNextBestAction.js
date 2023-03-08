@@ -41,46 +41,17 @@ const DigitalChannelNextBestAction = (props) => {
 	
 		for (let i = 0; i < lines.length; i++) {
 			const line = lines[i];
-	
-			if (line.startsWith(customerName)) {
-				// User message
-				translatedLines.push({ role: "user", content: line });
-				if (hasLiveAssistantStarted) {
-					translatedLines.push({ role: "system", content: systemMessage2 });
-				}
-			} else if (line.startsWith(originalAssistant)) {
-				// Original assistant message
-				const messageParts = line.split(": ");
-				if (messageParts.length < 2) {
-					throw new Error("Invalid assistant message format");
-				}
-				translatedLines.push({
-					role: "assistant",
-					content: `${originalAssistant}: ${messageParts[1]}`,
-				});
-				if (line.includes(liveAssistant)) {
-					currentAssistant = liveAssistant;
-				}
-			} else if (line.startsWith(liveAssistant)) {
-				hasLiveAssistantStarted = true;
-				// Live assistant message
-				const messageParts = line.split(": ");
-				if (messageParts.length < 2) {
-					throw new Error("Invalid assistant message format");
-				}
-				translatedLines.push({
-					role: "assistant",
-					content: `${liveAssistant}: ${messageParts[1]}`,
-				});
-			} else {
-				//Assume if we get here, then either the ":" delimiter was not found, or the names don't match, which would only happen if OpenAI returns a response that doesn't stay within the format we expect for liveAssitant. So, if it does happen, we'll render as if OpenAI made a mistake and the line is for the liveAssistant
+			let messageParts = line.split(": ");
+			if (messageParts.length < 2 || !line.includes(": ") || (!line.startsWith(customerName) && !line.startsWith(liveAssistant) && !line.startsWith(originalAssistant))) {
+				//If we ever have a situation where the format is off, whether that's no prefix, or just that the prefix doesn't match any of our identities, then we're going to assume its the live agent, because the OpenAI API may return a bad prefix, whereas we should always be ensuring the Customer and Virtual Agent prefixes are there, and we control this ourselves
 				if (!line.includes(": ")) {
 					//If we don't find the delimiter, then just print the line and add our liveAssistant as the prefix
 					translatedLines.push({
 						role: "assistant",
 						content: `${liveAssistant}: ${line}`,
 					});
-				} else {
+				}
+				else{
 					//If we do find the delimiter, this assumes there was no previous match in the if/else block on customerName, originalAssistant, or liveAssistant, so, we'll just assume liveAssisant here
 					const messageParts = line.split(": ");
 					translatedLines.push({
@@ -88,14 +59,35 @@ const DigitalChannelNextBestAction = (props) => {
 						content: `${liveAssistant}: ${messageParts[1]}`,
 					});
 				}
+				continue;
 			}
+			if (line.startsWith(customerName)) {
+				// User message
+				translatedLines.push({ role: "user", content: line });
+			} else if (line.startsWith(originalAssistant)) {
+				// Original assistant message
+				const messageParts = line.split(": ");
+				translatedLines.push({
+					role: "assistant",
+					content: `${originalAssistant}: ${messageParts[1]}`,
+				});
+			} else if (line.startsWith(liveAssistant)) {
+				hasLiveAssistantStarted = true;
+				// Live assistant message
+				const messageParts = line.split(": ");
+				translatedLines.push({
+					role: "assistant",
+					content: `${liveAssistant}: ${messageParts[1]}`,
+				});
+			} 
 		}
 	
-        if (!hasLiveAssistantStarted || translatedLines[translatedLines.length - 1].content.startsWith(`${liveAssistant}:`)) {
-            //Added the OR condition where, if the last line in the array is from the liveAssistant, we need to ensure the next best action does not come from the perspective of the customer, so we will clarify that by adding the "system" line here
-            //If we looped through the transcript and there was no message from the live agent, than we can assume this is the first time the live agent will introduce themselves, and thus need to add the system message appropriate for this
-            translatedLines.push({ role: "system", content: systemMessage3 });
-        }
+		if (!hasLiveAssistantStarted) {
+		//We haven't started with the live assistant yet, so we can assume the transcript ends with the live agent handoff, and thus we need our dedicate message for the transition to live agent
+			translatedLines.push({ role: "system", content: systemMessage2 });
+		}else{
+			translatedLines.push({ role: "system", content: systemMessage3 });
+		}
 	
 		return translatedLines;
 	}
