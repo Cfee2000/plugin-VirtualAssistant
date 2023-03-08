@@ -143,7 +143,7 @@ const DigitalChannelNextBestAction = (props) => {
 			//console.log(response.body);
 
 			while (
-				!data.choices[0].message &&
+				(!Array.isArray(data.choices) || data.choices.length === 0 || !data.choices[0].message) &&
 				retries < process.env.REACT_APP_MAX_RETRIES
 			) {
 				console.log(
