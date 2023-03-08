@@ -123,9 +123,18 @@ const DigitalChannelNextBestAction = (props) => {
 			});
 
 			if (!response.ok) {
-				throw new Error(
-					`Error fetching digital channel next best actions: ${response.status}`
-				);
+				if(response.status === 429){
+					console.log("OPEN AI returned a 429. Will initiate retry logic");
+				} else if(response.status === 500){
+					console.log("OPEN AI returned a 500. Will initiate retry logic");
+				}else if(response.status === 502){
+					console.log("OPEN AI returned a 502. Will initiate retry logic");
+				} else{
+					throw new Error(
+						`Error fetching digital channel next best actions: ${response.status}`
+					);
+				}
+
 			}
 
 			let data = await response.json();
