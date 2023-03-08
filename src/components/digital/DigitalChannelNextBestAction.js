@@ -109,7 +109,7 @@ const DigitalChannelNextBestAction = (props) => {
 				},
 				body: JSON.stringify({
 					messages: convertedTranscript,
-					temperature: 0.8,
+					temperature: 0,
 					model: "gpt-3.5-turbo",
 				}),
 			});
