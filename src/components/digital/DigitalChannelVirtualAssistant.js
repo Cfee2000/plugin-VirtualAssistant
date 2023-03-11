@@ -233,6 +233,7 @@ const DigitalChannelVirtualAssistant = (props) => {
 										customerName={props.task.attributes.customerName}
 										nextBestActionTranscript={nextBestActionTranscript}
 										workerName={props.task._task._worker.attributes.full_name}
+										customerEmail={props.task.attributes.emailAddress}
 									/>
 								)}
 							</TabPanel>
