@@ -56,7 +56,7 @@ const DigitalChannelSummary = (props) => {
 	const fetchSummary = async () => {
 		const prompt = `In 5 sentences or less, provide a summarization of the following transcript between a virtual agent and a customer: ${props.promptTranscript}`;
 
-		const response = await fetch("https://api.openai.com/v1/completions", {
+		const response = await fetch(process.env.REACT_APP_OPENAI_GPT3_API_ENDPOINT, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
