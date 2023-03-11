@@ -6,6 +6,7 @@ import {
 	Button,
 	SkeletonLoader,
 	TextArea,
+	AlertDialog,
 } from "@twilio-paste/core";
 import { LoadingIcon } from "@twilio-paste/icons/esm/LoadingIcon";
 
@@ -21,28 +22,43 @@ const DigitalChannelNextBestAction = (props) => {
 	const [editNextBestAction, setEditNextBestAction] = useState(false);
 	const [summary, setSummary] = useState(null);
 	const [isLoadingSummary, setIsLoadingSummary] = useState(false);
+	const [isLoadingSegment, setIsLoadingSegment] = useState(false);
+	const [isSegmentAlertOpen, setIsSegmentAlertOpen] = useState(false);
 
-	function translatePromptToChatGPT(transcript, customerName, originalAssistant, liveAssistant) {
-		if (!transcript || !customerName || !originalAssistant || !liveAssistant
-		) {
+	const handleSegmentAlertOpen = () => setIsSegmentAlertOpen(true);
+	const handleSegmentAlertClose = () => setIsSegmentAlertOpen(false);
+
+	function translatePromptToChatGPT(
+		transcript,
+		customerName,
+		originalAssistant,
+		liveAssistant
+	) {
+		if (!transcript || !customerName || !originalAssistant || !liveAssistant) {
 			throw new Error("Missing required parameter");
 		}
 		const systemMessage1 = `${customerName} sends an inbound SMS to the Owl Car Customer Care Virtual Agent to start a conversation from the company's webchat on their main website`;
 		const systemMessage2 = `You are ${liveAssistant}, an Owl Shoes concierge. You are about to address ${customerName} live for the first time after they interacted with the Dialogflow CX Virtual Agent, so your response should take into account their conversation with the Virtual Agent and what their last request was. Provide the next best action as appropriate for taking over as a live agent. It's important to remember that you are an Owl Shoes concierge providing an intelligent, empathetic, and solution oriented approach. You can help with things like reviewing and placing orders, product recommendations, returns and exchanges, complaints and tickets, pricing and promotions, delivery updates and modifications. Owl Shoes sells shoes, nothing else, and therefore you cannot sell anything other than shoes as an Owl Shoes Concierge.`;
 		const systemMessage3 = `${liveAssistant} will provide the next best action as the assistant role. ${liveAssistant} is an Owl Shoes concierge. ${liveAssistant} can help with things like reviewing and placing orders, product recommendations, returns and exchanges, complaints and tickets, pricing and promotions, delivery updates and modifications. Owl Shoes sells shoes, nothing else, and therefore ${liveAssistant} cannot sell anything other than shoes as an Owl Shoes Concierge.`;
-		
+
 		const lines = transcript.split("\n").filter((line) => line.trim() !== "");
 		const translatedLines = [];
 		let currentAssistant = originalAssistant;
 		let hasLiveAssistantStarted = false;
-	
+
 		// Add system message 1 at the beginning
 		translatedLines.push({ role: "system", content: systemMessage1 });
-	
+
 		for (let i = 0; i < lines.length; i++) {
 			const line = lines[i];
 			let messageParts = line.split(": ");
-			if (messageParts.length < 2 || !line.includes(": ") || (!line.startsWith(customerName) && !line.startsWith(liveAssistant) && !line.startsWith(originalAssistant))) {
+			if (
+				messageParts.length < 2 ||
+				!line.includes(": ") ||
+				(!line.startsWith(customerName) &&
+					!line.startsWith(liveAssistant) &&
+					!line.startsWith(originalAssistant))
+			) {
 				//If we ever have a situation where the format is off, whether that's no prefix, or just that the prefix doesn't match any of our identities, then we're going to assume its the live agent, because the OpenAI API may return a bad prefix, whereas we should always be ensuring the Customer and Virtual Agent prefixes are there, and we control this ourselves
 				if (!line.includes(": ")) {
 					//If we don't find the delimiter, then just print the line and add our liveAssistant as the prefix
@@ -50,8 +66,7 @@ const DigitalChannelNextBestAction = (props) => {
 						role: "assistant",
 						content: `${liveAssistant}: ${line}`,
 					});
-				}
-				else{
+				} else {
 					//If we do find the delimiter, this assumes there was no previous match in the if/else block on customerName, originalAssistant, or liveAssistant, so, we'll just assume liveAssisant here
 					const messageParts = line.split(": ");
 					translatedLines.push({
@@ -79,16 +94,16 @@ const DigitalChannelNextBestAction = (props) => {
 					role: "assistant",
 					content: `${liveAssistant}: ${messageParts[1]}`,
 				});
-			} 
+			}
 		}
-	
+
 		if (!hasLiveAssistantStarted) {
-		//We haven't started with the live assistant yet, so we can assume the transcript ends with the live agent handoff, and thus we need our dedicate message for the transition to live agent
+			//We haven't started with the live assistant yet, so we can assume the transcript ends with the live agent handoff, and thus we need our dedicate message for the transition to live agent
 			translatedLines.push({ role: "system", content: systemMessage2 });
-		}else{
+		} else {
 			translatedLines.push({ role: "system", content: systemMessage3 });
 		}
-	
+
 		return translatedLines;
 	}
 
@@ -97,36 +112,42 @@ const DigitalChannelNextBestAction = (props) => {
 		console.log(transcript);
 		let retries = 0;
 		try {
-			
-			const convertedTranscript = translatePromptToChatGPT(transcript, customerName, "Dialogflow CX Virtual Agent", workerName);
+			const convertedTranscript = translatePromptToChatGPT(
+				transcript,
+				customerName,
+				"Dialogflow CX Virtual Agent",
+				workerName
+			);
 			console.log("CONVERTED TRANSCRIPT");
 			console.log(convertedTranscript);
-			let response = await fetch("https://api.openai.com/v1/chat/completions", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					Authorization: `Bearer ${process.env.REACT_APP_OPEN_AI_APIKEY}`,
-				},
-				body: JSON.stringify({
-					messages: convertedTranscript,
-					temperature: 0,
-					model: "gpt-3.5-turbo",
-				}),
-			});
+			let response = await fetch(
+				process.env.REACT_APP_OPENAI_CHATGPT_API_ENDPOINT,
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${process.env.REACT_APP_OPEN_AI_APIKEY}`,
+					},
+					body: JSON.stringify({
+						messages: convertedTranscript,
+						temperature: 0.2,
+						model: "gpt-3.5-turbo",
+					}),
+				}
+			);
 
 			if (!response.ok) {
-				if(response.status === 429){
+				if (response.status === 429) {
 					console.log("OPEN AI returned a 429. Will initiate retry logic");
-				} else if(response.status === 500){
+				} else if (response.status === 500) {
 					console.log("OPEN AI returned a 500. Will initiate retry logic");
-				}else if(response.status === 502){
+				} else if (response.status === 502) {
 					console.log("OPEN AI returned a 502. Will initiate retry logic");
-				} else{
+				} else {
 					throw new Error(
 						`Error fetching digital channel next best actions: ${response.status}`
 					);
 				}
-
 			}
 
 			let data = await response.json();
@@ -135,7 +156,9 @@ const DigitalChannelNextBestAction = (props) => {
 			//console.log(response.body);
 
 			while (
-				(!Array.isArray(data.choices) || data.choices.length === 0 || !data.choices[0].message) &&
+				(!Array.isArray(data.choices) ||
+					data.choices.length === 0 ||
+					!data.choices[0].message) &&
 				retries < process.env.REACT_APP_MAX_RETRIES
 			) {
 				console.log(
@@ -144,18 +167,21 @@ const DigitalChannelNextBestAction = (props) => {
 				await new Promise((resolve) => {
 					setTimeout(resolve, process.env.REACT_APP_RETRY_DELAY_MS);
 				});
-				response = await fetch("https://api.openai.com/v1/chat/completions", {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						Authorization: `Bearer ${process.env.REACT_APP_OPEN_AI_APIKEY}`,
-					},
-					body: JSON.stringify({
-						messages: convertedTranscript,
-						temperature: 0,
-						model: "gpt-3.5-turbo",
-					}),
-				});
+				response = await fetch(
+					process.env.REACT_APP_OPENAI_CHATGPT_API_ENDPOINT,
+					{
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+							Authorization: `Bearer ${process.env.REACT_APP_OPEN_AI_APIKEY}`,
+						},
+						body: JSON.stringify({
+							messages: convertedTranscript,
+							temperature: 0.2,
+							model: "gpt-3.5-turbo",
+						}),
+					}
+				);
 				data = await response.json();
 				retries++;
 				console.log("RETRIES: " + retries);
@@ -222,25 +248,53 @@ const DigitalChannelNextBestAction = (props) => {
 	const fetchSummary = async (updatedTranscript) => {
 		const prompt = `In 10 sentences or less, provide a summarization of the following transcript: ${updatedTranscript}`;
 
-		const response = await fetch("https://api.openai.com/v1/completions", {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${process.env.REACT_APP_OPEN_AI_APIKEY}`,
-			},
-			body: JSON.stringify({
-				prompt: prompt,
-				max_tokens: 1000,
-				temperature: 0.8,
-				model: "text-davinci-003",
-			}),
-		});
+		const response = await fetch(
+			process.env.REACT_APP_OPENAI_GPT3_API_ENDPOINT,
+			{
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${process.env.REACT_APP_OPEN_AI_APIKEY}`,
+				},
+				body: JSON.stringify({
+					prompt: prompt,
+					max_tokens: 1000,
+					temperature: 0.8,
+					model: "text-davinci-003",
+				}),
+			}
+		);
 
 		if (!response.ok) {
 			throw new Error(`Failed to fetch voice call summary: ${response.status}`);
 		}
 
 		return response;
+	};
+
+	const updateSegment = async (payload) => {
+		try {
+			const token = `${process.env.REACT_APP_SEGMENT_WRITE_TOKEN}:`;
+			const authorization = `Basic ${Buffer.from(token).toString("base64")}`;
+
+			const response = await fetch(process.env.REACT_APP_SEGMENT_WRITE_ENDPOINT, {
+				method: "POST",
+				headers: {
+					Authorization: authorization,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(payload),
+			});
+
+			if (!response.ok) {
+				throw new Error("Segment update failed");
+			}
+
+			return response.json();
+		} catch (error) {
+			console.error(error);
+			throw error;
+		}
 	};
 
 	useEffect(() => {
@@ -275,7 +329,8 @@ const DigitalChannelNextBestAction = (props) => {
 				let prevTranscript = transcript;
 				const { author, body } = message;
 				//We will use a uuidRegex to check for a WebChat identity as the author of the message in the logic below
-				const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
+				const uuidRegex =
+					/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
 				if (author.startsWith("+") || uuidRegex.test(author)) {
 					setIsLoading(true);
 					console.log("MESSAGE IS FROM THE CUSTOMER");
@@ -328,7 +383,11 @@ const DigitalChannelNextBestAction = (props) => {
 	const fetchNewNextBestAction = async (transcript) => {
 		try {
 			setIsLoading(true);
-			const data = await fetchNextBestAction(transcript, props.customerName, props.workerName);
+			const data = await fetchNextBestAction(
+				transcript,
+				props.customerName,
+				props.workerName
+			);
 			setNextBestAction(data);
 		} catch (error) {
 			console.error(error);
@@ -342,6 +401,31 @@ const DigitalChannelNextBestAction = (props) => {
 			await retrieveSummary(transcript);
 		} catch (error) {
 			console.error(error);
+		}
+	};
+	const pushSummaryToSegment = async (summary) => {
+		const payloadSegment = {
+			anonymousId: "flexSummary_" + props.emailAddress,
+			event: "Transcript Summarization from Flex",
+			properties: {
+				summary: summary,
+				dispositionText: "Here's the final disposition from the live agent",
+				dispositionCode: 10,
+			},
+			track: "track",
+		};
+
+		try {
+			setIsLoadingSegment(true);
+			const response = await updateSegment(payloadSegment);
+			console.log(response);
+			console.log("Segment update successful");
+		} catch (error) {
+			console.error(error);
+			console.log("Segment update failed");
+		} finally {
+			setIsLoadingSegment(false);
+			handleSegmentAlertClose();
 		}
 	};
 
@@ -457,9 +541,38 @@ const DigitalChannelNextBestAction = (props) => {
 						</Stack>
 						<Card>
 							<Paragraph>{summary}</Paragraph>
-							<Button variant="primary">
+							<Button variant="primary" onClick={handleSegmentAlertOpen}>
 								Update Segment
 							</Button>
+							{isLoadingSegment ? (
+								<>
+									<Heading as="h3" variant="heading30">
+										Loading....Please Wait
+									</Heading>
+									<SkeletonLoader height="150px" />
+								</>
+							) : (
+								<>
+									<AlertDialog
+										heading="Update Segment with Summary"
+										isOpen={isSegmentAlertOpen}
+										onConfirm={() => pushSummaryToSegment(summary)}
+										onConfirmLabel="Update"
+										onDismiss={handleSegmentAlertClose}
+										onDismissLabel="Cancel"
+									
+									>
+										You are about to update the Segment Profile of{" "}
+										{props.customerName} with the following summary:
+										<br />
+										<br />
+										{summary}
+										<br />
+										<br />
+										Click "Update" to proceed, or "Cancel" to return to Flex.
+									</AlertDialog>
+								</>
+							)}
 						</Card>{" "}
 					</>
 				)}
