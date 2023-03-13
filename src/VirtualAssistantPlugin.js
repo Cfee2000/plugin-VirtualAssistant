@@ -3,6 +3,8 @@ import { FlexPlugin } from "@twilio/flex-plugin";
 import { CustomizationProvider } from "@twilio-paste/core/customization";
 import VoiceVirtualAssistant from "./components/voice/VoiceVirtualAssistant";
 import DigitalChannelVirtualAssistant from "./components/digital/DigitalChannelVirtualAssistant";
+import { Tab } from "@twilio/flex-ui";
+import ConversationSummaryCard from "./components/digital/ConversationSummaryCard";
 
 const PLUGIN_NAME = "VirtualAssistantPlugin";
 
@@ -54,6 +56,25 @@ export default class VirtualAssistantPlugin extends FlexPlugin {
 			}
 			return false;
 		};
+
+		const shouldDisplayTab = (props) => {
+			const t = props.task;
+			if (t && (t.attributes?.conversationSid) ) return true;
+			return false;
+		  };
+
+		flex.Supervisor.TaskCanvasTabs.Content.add(
+			<Tab
+			  uniqueName="conversation-openai-summary"
+			  key="conversation-openai-summary"
+			  label="Chat Summary"
+			><ConversationSummaryCard key={Math.random()} />
+			</Tab>,
+			{
+			  sortOrder: -1,
+			  if: shouldDisplayTab,
+			}
+		  );
 
 		//Conditionally replace Panel2 with the VoiceVirtualAssistant.
 		flex.AgentDesktopView.Panel2.Content.replace(
