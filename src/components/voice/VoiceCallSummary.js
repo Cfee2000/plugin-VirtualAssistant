@@ -65,7 +65,7 @@ const VoiceCallSummary = (props) => {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
-					Authorization: `Bearer ${process.env.REACT_APP_OPEN_AI_APIKEY}`,
+					Authorization: `Bearer ${process.env.REACT_APP_OPENAI_API_KEY}`,
 				},
 				body: JSON.stringify({
 					prompt: prompt,
