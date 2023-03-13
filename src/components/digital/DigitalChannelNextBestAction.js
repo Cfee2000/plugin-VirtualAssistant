@@ -37,8 +37,8 @@ const DigitalChannelNextBestAction = (props) => {
 		if (!transcript || !customerName || !originalAssistant || !liveAssistant) {
 			throw new Error("Missing required parameter");
 		}
-		const systemMessage1 = `${customerName} sends an inbound SMS to the Owl Car Customer Care Virtual Agent to start a conversation from the company's webchat on their main website`;
-		const systemMessage2 = `You are ${liveAssistant}, an Owl Shoes concierge. You are about to address ${customerName} live for the first time after they interacted with the Dialogflow CX Virtual Agent, so your response should take into account their conversation with the Virtual Agent and what their last request was. Provide the next best action as appropriate for taking over as a live agent. It's important to remember that you are an Owl Shoes concierge providing an intelligent, empathetic, and solution oriented approach. You can help with things like reviewing and placing orders, product recommendations, returns and exchanges, complaints and tickets, pricing and promotions, delivery updates and modifications. Owl Shoes sells shoes, nothing else, and therefore you cannot sell anything other than shoes as an Owl Shoes Concierge.`;
+		const systemMessage1 = `${customerName} sends an inbound message to a Dialogflow CX Virtual Agent to start a conversation, either from the company's webchat on their main website, or via their SMS contact number`;
+		const systemMessage2 = `You are ${liveAssistant}, an Owl Shoes concierge. You are about to address ${customerName} live for the first time after they interacted with the Dialogflow CX Virtual Agent, so your response should take into account their conversation with the Virtual Agent and what their last request was, as well as be written in their native language. Provide the next best action as appropriate for taking over as a live agent. It's important to remember that you are an Owl Shoes concierge providing an intelligent, empathetic, and solution oriented approach. You can help with things like reviewing and placing orders, product recommendations, returns and exchanges, complaints and tickets, pricing and promotions, delivery updates and modifications. Owl Shoes sells shoes, nothing else, and therefore you cannot sell anything other than shoes as an Owl Shoes Concierge.`;
 		const systemMessage3 = `${liveAssistant} will provide the next best action as the assistant role. ${liveAssistant} is an Owl Shoes concierge. ${liveAssistant} can help with things like reviewing and placing orders, product recommendations, returns and exchanges, complaints and tickets, pricing and promotions, delivery updates and modifications. Owl Shoes sells shoes, nothing else, and therefore ${liveAssistant} cannot sell anything other than shoes as an Owl Shoes Concierge.`;
 
 		const lines = transcript.split("\n").filter((line) => line.trim() !== "");
@@ -126,7 +126,7 @@ const DigitalChannelNextBestAction = (props) => {
 					method: "POST",
 					headers: {
 						"Content-Type": "application/json",
-						Authorization: `Bearer ${process.env.REACT_APP_OPEN_AI_APIKEY}`,
+						Authorization: `Bearer ${process.env.REACT_APP_OPENAI_API_KEY}`,
 					},
 					body: JSON.stringify({
 						messages: convertedTranscript,
@@ -173,7 +173,7 @@ const DigitalChannelNextBestAction = (props) => {
 						method: "POST",
 						headers: {
 							"Content-Type": "application/json",
-							Authorization: `Bearer ${process.env.REACT_APP_OPEN_AI_APIKEY}`,
+							Authorization: `Bearer ${process.env.REACT_APP_OPENAI_API_KEY}`,
 						},
 						body: JSON.stringify({
 							messages: convertedTranscript,
@@ -254,7 +254,7 @@ const DigitalChannelNextBestAction = (props) => {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
-					Authorization: `Bearer ${process.env.REACT_APP_OPEN_AI_APIKEY}`,
+					Authorization: `Bearer ${process.env.REACT_APP_OPENAI_API_KEY}`,
 				},
 				body: JSON.stringify({
 					prompt: prompt,
@@ -277,14 +277,17 @@ const DigitalChannelNextBestAction = (props) => {
 			const token = `${process.env.REACT_APP_SEGMENT_WRITE_TOKEN}:`;
 			const authorization = `Basic ${Buffer.from(token).toString("base64")}`;
 
-			const response = await fetch(process.env.REACT_APP_SEGMENT_WRITE_ENDPOINT, {
-				method: "POST",
-				headers: {
-					Authorization: authorization,
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(payload),
-			});
+			const response = await fetch(
+				process.env.REACT_APP_SEGMENT_WRITE_ENDPOINT,
+				{
+					method: "POST",
+					headers: {
+						Authorization: authorization,
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify(payload),
+				}
+			);
 
 			if (!response.ok) {
 				throw new Error("Segment update failed");
@@ -362,6 +365,38 @@ const DigitalChannelNextBestAction = (props) => {
 		};
 	}, [transcript]); // add transcript as a dependency
 
+	useEffect(() => {
+		if(summary)
+		{
+			console.log("IN CONVERSATION SET SUMMARY ATTRIBUTE useEFFECT");
+			const setSummaryinConversationAttributes = async () => {
+				try {
+					const conversationsClient =
+						Flex.Manager.getInstance().conversationsClient;
+					const conversation = await conversationsClient.getConversationBySid(
+						props.conversationSid
+					);
+					const conversationAttributes = await conversation.getAttributes();
+					console.log(conversationAttributes);
+					console.log(conversationAttributes.summary);
+					console.log(summary);
+					if (conversationAttributes.summary !== summary) {
+						const newAttributes = { ...conversationAttributes, summary };
+						console.log("NEW ATTRIBUTES");
+						console.log(newAttributes);
+						const result = await conversation.updateAttributes(newAttributes);
+						console.log(result);
+					}
+				} catch (err) {
+					console.error("Error fetching messages:", err);
+					throw err;
+				}
+			};
+			setSummaryinConversationAttributes();
+		}
+
+	}, [summary]);
+
 	const sendMessage = (text) => {
 		try {
 			Actions.invokeAction("SendMessage", {
@@ -409,8 +444,6 @@ const DigitalChannelNextBestAction = (props) => {
 			event: "Transcript Summarization from Flex",
 			properties: {
 				summary: summary,
-				dispositionText: "Here's the final disposition from the live agent",
-				dispositionCode: 10,
 			},
 			track: "track",
 		};
@@ -560,7 +593,6 @@ const DigitalChannelNextBestAction = (props) => {
 										onConfirmLabel="Update"
 										onDismiss={handleSegmentAlertClose}
 										onDismissLabel="Cancel"
-									
 									>
 										You are about to update the Segment Profile of{" "}
 										{props.customerName} with the following summary:
