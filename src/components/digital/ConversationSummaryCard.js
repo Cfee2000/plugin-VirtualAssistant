@@ -32,12 +32,12 @@ const ConversationSummaryCard = (props) => {
                 }
 
 			} catch (err) {
-				console.error(`Error retrieving attributes.summary for Conversation SID: ${props.conversation}`, err);
+				console.error(`Error retrieving attributes.summary for Conversation SID: ${props.task.attributes.conversationSid}`, err);
 				throw err;
 			}
 		}
 		getConversationSummaryFromAttributes();
-	}, [summary, props?.task?.attributes.conversationSid]);
+	}, [summary, props.task.attributes.conversationSid]);
 
 	return (
 		<div style={{ margin: 15 }}>
