@@ -373,20 +373,31 @@ const DigitalChannelNextBestAction = (props) => {
 				try {
 					const conversationsClient =
 						Flex.Manager.getInstance().conversationsClient;
+
+					console.log("CONVO SID : " + props.conversationSid);
 					const conversation = await conversationsClient.getConversationBySid(
 						props.conversationSid
 					);
+		
 					const conversationAttributes = await conversation.getAttributes();
 					console.log(conversationAttributes);
 					console.log(conversationAttributes.summary);
-					console.log(summary);
-					if (conversationAttributes.summary !== summary) {
-						const newAttributes = { ...conversationAttributes, summary };
-						console.log("NEW ATTRIBUTES");
-						console.log(newAttributes);
-						const result = await conversation.updateAttributes(newAttributes);
-						console.log(result);
+					console.log("CONVERSATION STATE");
+					console.log(conversation.state.current);
+					if(conversation.state.current !== "closed")
+					{
+						console.log(summary);
+						if (conversationAttributes.summary !== summary) {
+							const newAttributes = { ...conversationAttributes, summary };
+							console.log("NEW ATTRIBUTES");
+							console.log(newAttributes);
+							const result = await conversation.updateAttributes(newAttributes);
+							console.log(result);
+						}
+					} else{
+						console.warn("Conversation is in a 'closed' state. Cannot sync attributes. SOLUTION: End Chat in Flex and start a new chat.");
 					}
+
 				} catch (err) {
 					console.error("Error fetching messages:", err);
 					throw err;
@@ -440,12 +451,13 @@ const DigitalChannelNextBestAction = (props) => {
 	};
 	const pushSummaryToSegment = async (summary) => {
 		const payloadSegment = {
-			anonymousId: "flexSummary_" + props.emailAddress,
+			anonymousId: "flexSummary_" + props.customerEmail,
 			event: "Transcript Summarization from Flex",
 			properties: {
-				summary: summary,
+				email: props.customerEmail,
+				summary: summary.replace(/^\n+/, ''),
 			},
-			track: "track",
+			type: "track",
 		};
 
 		try {
