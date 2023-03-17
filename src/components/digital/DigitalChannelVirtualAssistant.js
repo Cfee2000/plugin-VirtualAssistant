@@ -176,7 +176,7 @@ const DigitalChannelVirtualAssistant = (props) => {
 										workerName={props.task._task._worker.attributes.full_name}
 										customerEmail={props.task.attributes.emailAddress}
 									/>
-									// <ConversationSummaryCard nextBestActionTranscript={nextBestActionTranscript} onNewNextBestActionSummary={newNextBestActionSummaryHandler}/>
+									// <ConversationSummaryCard nextBestActionTranscript={nextBestActionTranscript} onNewNextBestActionSummary={newNextBestActionSummaryHandler}/> 
 								)}
 							</TabPanel>
 						</TabPanels>
