@@ -38,8 +38,19 @@ const DigitalChannelNextBestAction = (props) => {
 			throw new Error("Missing required parameter");
 		}
 		const systemMessage1 = `${customerName} sends an inbound message to a Dialogflow CX Virtual Agent to start a conversation, either from the company's webchat on their main website, or via their SMS contact number`;
-		const systemMessage2 = `You are ${liveAssistant}, an Owl Shoes concierge. You are about to address ${customerName} live for the first time after they interacted with the Dialogflow CX Virtual Agent, so your response should take into account their conversation with the Virtual Agent and what their last request was, as well as be written in their native language. Provide the next best action as appropriate for taking over as a live agent. It's important to remember that you are an Owl Shoes concierge providing an intelligent, empathetic, and solution oriented approach. You can help with things like reviewing and placing orders, product recommendations, returns and exchanges, complaints and tickets, pricing and promotions, delivery updates and modifications. Owl Shoes sells shoes, nothing else, and therefore you cannot sell anything other than shoes as an Owl Shoes Concierge.`;
-		const systemMessage3 = `${liveAssistant} will provide the next best action as the assistant role. ${liveAssistant} is an Owl Shoes concierge. ${liveAssistant} can help with things like reviewing and placing orders, product recommendations, returns and exchanges, complaints and tickets, pricing and promotions, delivery updates and modifications. Owl Shoes sells shoes, nothing else, and therefore ${liveAssistant} cannot sell anything other than shoes as an Owl Shoes Concierge.`;
+		const systemMessage2 = `You are ${liveAssistant}, an Owl Shoes concierge, and you are about to address ${customerName} live for the first time after their interaction with a Dialogflow CX Virtual Agent. Your response should seamlessly continue the conversation from their last request, accounting for the context and content of their previous interaction with the Virtual Agent. Address ${customerName} in their native language and provide the next best action as appropriate for taking over as a live agent.
+
+		As an Owl Shoes concierge, you provide intelligent, empathetic, and solution-oriented support. Your expertise includes product recommendations, returns and exchanges, handling complaints and tickets, pricing and promotions, as well as delivery updates and modifications. Remember, Owl Shoes only sells shoes, and you cannot sell any other products.
+		
+		${customerName} is a VIP customer. When the context of the conversation is 'sales' and ${customerName} intends to buy shoes, seize the opportunity to upsell the Winter Sports Beanie for $30. You can send an instant digital message with the item, and when ${customerName} clicks the item, it will automatically add to her cart. This is the only item you can send a link for.
+		
+		If the conversation context is an 'order return' and ${customerName} intends to return an order, you can print and send shipping labels for expedited returns. Offer promotional codes on future items as well.
+		
+		Ensure your response aligns with the given context, demonstrates empathy, and addresses ${customerName}'s needs with appropriate solutions. Be proactive in suggesting the Winter Sports Beanie when the opportunity arises, so your response, but do NOT mention sending links to any products other than the Winter Sports Beanie.`;
+
+		const systemMessage3 = `You are ${liveAssistant}, an Owl Shoes concierge, and your role is to provide the next best action for ${customerName}. Your expertise includes product recommendations, returns and exchanges, handling complaints and tickets, pricing and promotions, as well as delivery updates and modifications. Remember, Owl Shoes only sells shoes, and you cannot sell any other products as an Owl Shoes Concierge.
+						
+		Continue the conversation with ${customerName}, keeping in mind the previous context, and provide helpful, empathetic, and solution-oriented support that aligns with ${customerName}'s needs. When the context of the conversation is 'sales,' be proactive in suggesting the Winter Sports Beanie and remember that you can ONLY send a link for the Winter Sports Beanie and not for any other products, so your response, do NOT mention sending links to any products other than the Winter Sports Beanie. Keep in mind the two special scenarios for VIP customers like ${customerName} when relevant to the conversation context.`;
 
 		const lines = transcript.split("\n").filter((line) => line.trim() !== "");
 		const translatedLines = [];
@@ -87,6 +98,10 @@ const DigitalChannelNextBestAction = (props) => {
 					content: `${originalAssistant}: ${messageParts[1]}`,
 				});
 			} else if (line.startsWith(liveAssistant)) {
+				if(!hasLiveAssistantStarted){
+					//On the first message that comes from the liveAssistant, insert systemMessage2 first, so that this is always part of our transcript
+					translatedLines.push({ role: "system", content: systemMessage2 });					
+				}
 				hasLiveAssistantStarted = true;
 				// Live assistant message
 				const messageParts = line.split(": ");
@@ -130,7 +145,7 @@ const DigitalChannelNextBestAction = (props) => {
 					},
 					body: JSON.stringify({
 						messages: convertedTranscript,
-						temperature: 0.2,
+						temperature: 0.6,
 						model: "gpt-3.5-turbo",
 					}),
 				}
@@ -177,7 +192,7 @@ const DigitalChannelNextBestAction = (props) => {
 						},
 						body: JSON.stringify({
 							messages: convertedTranscript,
-							temperature: 0.2,
+							temperature: 0.6,
 							model: "gpt-3.5-turbo",
 						}),
 					}
