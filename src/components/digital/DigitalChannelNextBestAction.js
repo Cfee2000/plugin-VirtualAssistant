@@ -37,21 +37,67 @@ const DigitalChannelNextBestAction = (props) => {
 		if (!transcript || !customerName || !originalAssistant || !liveAssistant) {
 			throw new Error("Missing required parameter");
 		}
+		console.log("Events");
+		console.log(props.events);
+
+		console.log("CustomerData");
+		console.log(props.customerData);
+
+		const events = JSON.parse(props.events);
+		console.log(events);
+		const eventDescriptions = events.events.map(event => {
+			switch (event.event) {
+			  case 'Product Viewed':
+				return `${customerName} recently viewed a product: ${event.properties.product_name} priced at ${event.properties.product_currency}${event.properties.product_price}.`;
+			  case 'Product Added':
+				return `${customerName} added a product to their cart: ${event.properties.product_name} (size: ${event.properties.product_size}) priced at ${event.properties.product_currency}${event.properties.product_price}.`;
+			  case 'Checkout Started':
+				return `${customerName} started the checkout process with a subtotal of ${event.properties.order_currency}${event.properties.order_subtotal}.`;
+			  case 'Order Placed':
+				return `${customerName} placed an order (Order ID: ${event.properties.order_id}) with a total of ${event.properties.order_currency}${event.properties.order_total}.`;
+			  case 'Chat Started':
+				return `${customerName} started a chat with the conversation ID: ${event.properties.conversationSid}.`;
+			  default:
+				return '';
+			}
+		  }).join(' ');
+
+	    let eventDescriptionText = "";
+		if(eventDescriptions.length > 0){
+			eventDescriptionText = `Recently, ${customerName} has recently been interacting with our website in the following ways:
+		
+			${eventDescriptions}`;
+		}
+		  
 		const systemMessage1 = `${customerName} sends an inbound message to a Dialogflow CX Virtual Agent to start a conversation, either from the company's webchat on their main website, or via their SMS contact number`;
-		const systemMessage2 = `You are ${liveAssistant}, an Owl Shoes concierge, and you are about to address ${customerName} live for the first time after their interaction with a Dialogflow CX Virtual Agent. Your response should seamlessly continue the conversation from their last request, accounting for the context and content of their previous interaction with the Virtual Agent. Address ${customerName} in their native language and provide the next best action as appropriate for taking over as a live agent.
-
-		As an Owl Shoes concierge, you provide intelligent, empathetic, and solution-oriented support. Your expertise includes product recommendations, returns and exchanges, handling complaints and tickets, pricing and promotions, as well as delivery updates and modifications. Remember, Owl Shoes only sells shoes, and you cannot sell any other products.
 		
-		${customerName} is a VIP customer. When the context of the conversation is 'sales' and ${customerName} intends to buy shoes, seize the opportunity to upsell the Winter Sports Beanie for $30. You can send an instant digital message with the item, and when ${customerName} clicks the item, it will automatically add to her cart. This is the only item you can send a link for.
-		
-		If the conversation context is an 'order return' and ${customerName} intends to return an order, you can print and send shipping labels for expedited returns. Offer promotional codes on future items as well.
-		
-		Ensure your response aligns with the given context, demonstrates empathy, and addresses ${customerName}'s needs with appropriate solutions. Be proactive in suggesting the Winter Sports Beanie when the opportunity arises, so your response, but do NOT mention sending links to any products other than the Winter Sports Beanie.`;
+		let systemMessage2 = `You are ${liveAssistant}, an Owl Shoes concierge, and you are about to address ${customerName} live for the first time after her interaction with a Dialogflow CX Virtual Agent. Your response should be a single reply, accounting for the context and content of her previous interaction with the Virtual Agent. Address ${customerName} in whatever langauge she is using, and provide the next best action as appropriate for taking over as a live agent.
 
-		const systemMessage3 = `You are ${liveAssistant}, an Owl Shoes concierge, and your role is to provide the next best action for ${customerName}. Your expertise includes product recommendations, returns and exchanges, handling complaints and tickets, pricing and promotions, as well as delivery updates and modifications. Remember, Owl Shoes only sells shoes, and you cannot sell any other products as an Owl Shoes Concierge.
-						
-		Continue the conversation with ${customerName}, keeping in mind the previous context, and provide helpful, empathetic, and solution-oriented support that aligns with ${customerName}'s needs. When the context of the conversation is 'sales,' be proactive in suggesting the Winter Sports Beanie and remember that you can ONLY send a link for the Winter Sports Beanie and not for any other products, so your response, do NOT mention sending links to any products other than the Winter Sports Beanie. Keep in mind the two special scenarios for VIP customers like ${customerName} when relevant to the conversation context.`;
+		As an Owl Shoes concierge, you provide intelligent, empathetic, and solution-oriented support. Your expertise includes product recommendations, returns and exchanges, handling complaints and tickets, pricing and promotions, as well as delivery updates and modifications. Remember, Owl Shoes only sells shoes (with the exception of a few exclusive VIP items), and you cannot sell any other products. IMPORTANT: You CANNOT place orders on behalf of the customer or add items to their cart. If the customer asks you to place an order, you must inform them that they need to complete the purchase themselves.
 
+		Keep in mind that ${customerName} is a VIP customer who has been loyal to Owl Shoes for ${props.customerData.yearsLoyalty} years, has a lifetime purchase value of $${props.customerData.business_value} and has referred ${props.customerData.referralCount} people to our store. She is ${props.customerData.age} years old, and is a ${props.customerData.engagementFrequency} engaged customer. 
+		
+		When the context of the conversation is 'sales' and ${customerName} intends to buy shoes, seize the opportunity to upsell the Winter Sports Beanie for $30. You can send an instant digital message with the item, and when she clicks the item, it will automatically add to her cart. This is the only item you can send a link for.
+		
+		If the conversation context is an 'order return' and she intends to return an order, you can print and send shipping labels for expedited returns. You may offer promotional codes on future items as well.
+		
+		Ensure your response aligns with the given context, demonstrates empathy, and addresses ${customerName}'s needs with appropriate solutions. Be proactive, but not overly aggressive, in suggesting the Winter Sports Beanie when the opportunity arises, and do NOT mention sending links to any products other than the Winter Sports Beanie.`;
+
+
+
+		let systemMessage3 = `You are ${liveAssistant}, an Owl Shoes concierge, and your role is to provide the next best action for ${customerName} in a single reply, accounting for the context and content of the conversation history, recent website interactions ${customerName} has had with Owl Shoes, and her VIP customer history. 
+		
+		As an Owl Shoes concierge, you provide intelligent, empathetic, and solution-oriented support. Your expertise includes product recommendations, returns and exchanges, handling complaints and tickets, pricing and promotions, as well as delivery updates and modifications. Remember, Owl Shoes only sells shoes (with the exception of a few exclusive VIP items), and you cannot sell any other products. IMPORTANT: You CANNOT place orders on behalf of the customer or add items to their cart. If the customer asks you to place an order, you must inform them that they need to complete the purchase themselves.
+		
+		Keep in mind that ${customerName} is a VIP customer who has been loyal to Owl Shoes for ${props.customerData.yearsLoyalty} years, has a lifetime purchase value of $${props.customerData.business_value} and has referred ${props.customerData.referralCount} people to our store. She is ${props.customerData.age} years old, and is a ${props.customerData.engagementFrequency} engaged customer.`;
+		
+		if (eventDescriptionText) {
+			systemMessage2 += `\n${eventDescriptionText}`;
+			systemMessage3 += `\n${eventDescriptionText}`;
+		  }
+
+		console.log(systemMessage2);
+		console.log(systemMessage3);
 		const lines = transcript.split("\n").filter((line) => line.trim() !== "");
 		const translatedLines = [];
 		let currentAssistant = originalAssistant;
@@ -203,6 +249,8 @@ const DigitalChannelNextBestAction = (props) => {
 			}
 
 			if (data.choices[0].message) {
+				console.log("Here's the NBA Message Content");
+				console.log(data.choices[0].message.content);
 				//We only want to return to the Flex UI the part of the message, if applicable, after the ":" delimiter
 				const messageParts = data.choices[0].message.content.split(": ");
 				if (messageParts.length < 2) {
