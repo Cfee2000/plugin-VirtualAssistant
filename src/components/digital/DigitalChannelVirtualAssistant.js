@@ -170,6 +170,8 @@ const DigitalChannelVirtualAssistant = (props) => {
 							<TabPanel>
 								{nextBestActionTranscript && (
 									<DigitalChannelNextBestAction
+										events={props.task.attributes.events}
+										customerData={props.task.attributes.customers}
 										conversationSid={props.task.attributes.conversationSid}
 										customerName={props.task.attributes.customerName}
 										nextBestActionTranscript={nextBestActionTranscript}
