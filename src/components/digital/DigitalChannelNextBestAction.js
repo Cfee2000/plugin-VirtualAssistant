@@ -50,7 +50,7 @@ const DigitalChannelNextBestAction = (props) => {
 			  case 'Product Viewed':
 				return `${customerName} recently viewed a product: ${event.properties.product_name} priced at ${event.properties.product_currency}${event.properties.product_price}.`;
 			  case 'Product Added':
-				return `${customerName} added a product to their cart: ${event.properties.product_name} (size: ${event.properties.product_size}) priced at ${event.properties.product_currency}${event.properties.product_price}.`;
+				return `${customerName} added a product to their cart: ${event.properties.product_name} (size ${event.properties.product_size}) priced at ${event.properties.product_currency}${event.properties.product_price}.`;
 			  case 'Checkout Started':
 				return `${customerName} started the checkout process with a subtotal of ${event.properties.order_currency}${event.properties.order_subtotal}.`;
 			  case 'Order Placed':
@@ -97,7 +97,7 @@ const DigitalChannelNextBestAction = (props) => {
 		  }
 
 		console.log(systemMessage2);
-		console.log(systemMessage3);
+		console.log(systemMessage3);		
 		const lines = transcript.split("\n").filter((line) => line.trim() !== "");
 		const translatedLines = [];
 		let currentAssistant = originalAssistant;
@@ -108,7 +108,7 @@ const DigitalChannelNextBestAction = (props) => {
 
 		for (let i = 0; i < lines.length; i++) {
 			const line = lines[i];
-			let messageParts = line.split(": ");
+			let messageParts = line.split(/: (.+)/); // Updated split() function call
 			if (
 				messageParts.length < 2 ||
 				!line.includes(": ") ||
@@ -250,7 +250,7 @@ const DigitalChannelNextBestAction = (props) => {
 
 			if (data.choices[0].message) {
 				console.log("Here's the NBA Message Content");
-				console.log(data.choices[0].message.content);
+				console.log(data.choices[0].message.content);				
 				//We only want to return to the Flex UI the part of the message, if applicable, after the ":" delimiter
 				const messageParts = data.choices[0].message.content.split(": ");
 				if (messageParts.length < 2) {
