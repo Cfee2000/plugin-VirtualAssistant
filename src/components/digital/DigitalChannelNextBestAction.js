@@ -43,28 +43,29 @@ const DigitalChannelNextBestAction = (props) => {
 		console.log("CustomerData");
 		console.log(props.customerData);
 
-		const events = JSON.parse(props.events);
+		const events = JSON.parse(props.events || '{}').events || [];
 		console.log(events);
-		const eventDescriptions = events.events.map(event => {
-			switch (event.event) {
-			  case 'Product Viewed':
-				return `${customerName} recently viewed a product: ${event.properties.product_name} priced at ${event.properties.product_currency}${event.properties.product_price}.`;
-			  case 'Product Added':
-				return `${customerName} added a product to their cart: ${event.properties.product_name} (size ${event.properties.product_size}) priced at ${event.properties.product_currency}${event.properties.product_price}.`;
-			  case 'Checkout Started':
-				return `${customerName} started the checkout process with a subtotal of ${event.properties.order_currency}${event.properties.order_subtotal}.`;
-			  case 'Order Placed':
-				return `${customerName} placed an order (Order ID: ${event.properties.order_id}) with a total of ${event.properties.order_currency}${event.properties.order_total}.`;
-			  case 'Chat Started':
-				return `${customerName} started a chat with the conversation ID: ${event.properties.conversationSid}.`;
-			  default:
-				return '';
-			}
-		  }).join(' ');
 
-	    let eventDescriptionText = "";
-		if(eventDescriptions.length > 0){
-			eventDescriptionText = `Recently, ${customerName} has recently been interacting with our website in the following ways:
+		const eventDescriptions = events.map((event) => {
+		  switch (event.event) {
+			case "Product Viewed":
+			  return `${customerName} recently viewed a product: ${event.properties.product_name} priced at ${event.properties.product_currency}${event.properties.product_price}.`;
+			case "Product Added":
+			  return `${customerName} added a product to their cart: ${event.properties.product_name} (size ${event.properties.product_size}) priced at ${event.properties.product_currency}${event.properties.product_price}.`;
+			case "Checkout Started":
+			  return `${customerName} started the checkout process with a subtotal of ${event.properties.order_currency}${event.properties.order_subtotal}.`;
+			case "Order Placed":
+			  return `${customerName} placed an order (Order ID: ${event.properties.order_id}) with a total of ${event.properties.order_currency}${event.properties.order_total}.`;
+			case "Chat Started":
+			  return `${customerName} started a chat with the conversation ID: ${event.properties.conversationSid}.`;
+			default:
+			  return "";
+		  }
+		}).join(" ");
+		
+		let eventDescriptionText = "";
+		if (eventDescriptions.length > 0) {
+		  eventDescriptionText = `Recently, ${customerName} has recently been interacting with our website in the following ways:
 		
 			${eventDescriptions}`;
 		}
