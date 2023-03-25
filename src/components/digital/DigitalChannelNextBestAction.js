@@ -49,13 +49,13 @@ const DigitalChannelNextBestAction = (props) => {
 		const eventDescriptions = events.map((event) => {
 		  switch (event.event) {
 			case "Product Viewed":
-			  return `${customerName} recently viewed a product: ${event.properties.product_name} priced at ${event.properties.product_currency}${event.properties.product_price}.`;
+			  return `${customerName} recently viewed a product ${event.properties.product_name} priced at ${event.properties.product_currency}${event.properties.product_price}.`;
 			case "Product Added":
 			  return `${customerName} added a product to their cart: ${event.properties.product_name} (size ${event.properties.product_size}) priced at ${event.properties.product_currency}${event.properties.product_price}.`;
 			case "Checkout Started":
 			  return `${customerName} started the checkout process with a subtotal of ${event.properties.order_currency}${event.properties.order_subtotal}.`;
 			case "Order Placed":
-			  return `${customerName} placed an order (Order ID: ${event.properties.order_id}) with a total of ${event.properties.order_currency}${event.properties.order_total}.`;
+			  return `${customerName} placed an order (Order ID ${event.properties.order_id}) with a total of ${event.properties.order_currency}${event.properties.order_total}.`;
 			case "Chat Started":
 			  return `${customerName} started a chat with the conversation ID: ${event.properties.conversationSid}.`;
 			default:
