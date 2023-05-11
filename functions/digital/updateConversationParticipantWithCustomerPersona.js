@@ -1,74 +1,86 @@
+const axios = require("axios");
+
 exports.handler = async function (context, event, callback) {
-	console.log(event.identity);
-	console.log(event.conversationSid);
+	console.log("Identity of customer/user: " + event.identity);
+	console.log("Conversation SID: " + event.conversationSid);
+	console.log("Participant Sid: " + event.participantSid);
 
 	const client = context.getTwilioClient();
 
-	const attributes = {
-		userId: "12345",
-		traits: {
-			firstName: "Mary",
-			lastName: "Doe Jr.",
-			fullName: "Mary Doe Jr.",
-			email: "mary.doe@example.com",
-			phone: "+1-555-555-5555",
-			yearsLoyalty: "3",
-			lifetimePurchaseValue: "$500",
-			engagementFrequency: "weekly",
-			referralCount: "5",
-			daysSinceLastPurchase: "30",
-			gender: "female",
-			age: "35",
-			address: {
-				street: "123 Main St",
-				city: "Anytown",
-				state: "CA",
-				zip: "12345",
-				country: "US",
-			},
-			preferences: {
-				brands: ["Owl Shoe", "Acme Shoe"],
-				categories: ["running", "athletic"],
-				sizes: ["10", "10.5"],
-				colors: ["purple", "white"],
-			},
-		},
-	};
-
 	try {
-		const participants = await client.conversations.v1
-			.conversations(event.conversationSid)
-			.participants.list({ limit: 20 });
+		let openFile = Runtime.getAssets()["/Segment-api-key.txt"].open;
+		let segmentKey = openFile();
+		console.log("SEGMENT KEY: " + segmentKey);
 
-		let participant;
-		if (event.identity.startsWith("+")) {
-			// This is SMS or WhatsApp
-			participant = participants.find(
-				(p) => p.messagingBinding.address === event.identity
+		let queryURL;
+		if (event.email) {
+			let email = event.email.toLowerCase();
+			console.log(email);
+
+			queryURL = `https://profiles.segment.com/v1/spaces/${process.env.SEGMENT_SPACE_ID}/collections/users/profiles/email:${email}/traits?limit=100`;
+		} else if (event.twilioNumber) {
+			let twilioNumberNoPlus = event.twilioNumber.substring(1);
+			queryURL = `https://profiles.segment.com/v1/spaces/${process.env.SEGMENT_SPACE_ID}/collections/users/profiles/phone:${twilioNumberNoPlus}/traits?limit=100`;
+		} else {
+			throw new Error(
+				"No email or twilioNumber supplied for Segment Profile lookup"
 			);
-		} else {
-			// This is WebChat
-			participant = participants.find((p) => p.identity === event.identity);
 		}
 
-		if (participant) {
-			console.log("Participant found:");
-			console.log(participant);
-
-			const updateResult = await client.conversations.v1
-				.conversations(event.conversationSid)
-				.participants(participant.sid)
-				.update({ attributes: JSON.stringify(attributes) });
-			console.log("Participant Updated");
-			console.log(updateResult);
-
-			const response = new Twilio.Response();
-			response.setBody(JSON.stringify(attributes));
-			callback(null, attributes);
-		} else {
-			console.log("Participant not found");
-			throw new Error("Participant not found");
+		console.log(queryURL);
+		let attributes;
+		try {
+			const response = await axios.get(queryURL, {
+				auth: { username: segmentKey },
+			});
+			attributes = await response.data;
+			console.log(JSON.stringify(attributes.traits));
+		} catch (error) {
+			console.error(error);
 		}
+
+		const whitelist = [
+			"address",
+			"age",
+			"average_order_value",
+			"daysSinceLastPurchase",
+			"email",
+			"engagementFrequency",
+			"firstName",
+			"gender",
+			"lastName",
+			"last_campaign_response",
+			"last_order",
+			"last_product_order",
+			"lifetimePurchaseValue",
+			"loyaltyProgram",
+			"name",
+			"phone",
+			"referralCount",
+			"sms_chat_orders",
+			"web_chat_orders",
+			"yearsLoyalty",
+		];
+
+		const whitelistedTraits = {};
+		for (const key of whitelist) {
+			if (attributes.traits.hasOwnProperty(key)) {
+				whitelistedTraits[key] = attributes.traits[key];
+			}
+		}
+
+		const updateResult = await client.conversations.v1
+			.conversations(event.conversationSid)
+			.participants(event.participantSid)
+			.update({ attributes: JSON.stringify({ traits: whitelistedTraits }) });
+		console.log(
+			`Participant ${event.participantSid} Updated with Segment Profile data`
+		);
+		console.log(updateResult);
+
+		const response = new Twilio.Response();
+		response.setBody(JSON.stringify({ traits: whitelistedTraits }));
+		callback(null, { traits: whitelistedTraits });
 	} catch (error) {
 		console.error(error);
 		const response = new Twilio.Response();
