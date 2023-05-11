@@ -12,7 +12,7 @@
           "event": "incomingCall"
         },
         {
-          "next": "UpdateConvoParticipantAttributes",
+          "next": "SplitSource2",
           "event": "incomingConversationMessage"
         },
         {
@@ -24,8 +24,8 @@
       ],
       "properties": {
         "offset": {
-          "x": -10,
-          "y": -350
+          "x": -90,
+          "y": -1490
         }
       }
     },
@@ -99,6 +99,10 @@
           {
             "value": "{{widgets.UpdateConvoParticipantAttributes.body}}",
             "key": "customerData"
+          },
+          {
+            "value": "{{widgets.getSegmentEvents.body}}",
+            "key": "customerEvents"
           }
         ],
         "url": ""
@@ -263,35 +267,11 @@
       }
     },
     {
-      "name": "SMStoFlex",
-      "type": "send-to-flex",
-      "transitions": [
-        {
-          "event": "callComplete"
-        },
-        {
-          "event": "failedToEnqueue"
-        },
-        {
-          "event": "callFailure"
-        }
-      ],
-      "properties": {
-        "offset": {
-          "x": 590,
-          "y": 1650
-        },
-        "workflow": "WW53bc0c70ccdb58e4bad316aec26cb332",
-        "channel": "TC2cb6489eb1780a070686463f2f6e1316",
-        "attributes": "{\"from\": \"{{trigger.conversation.From}}\", \"customerName\" : \"{{widgets.UpdateConvoParticipantAttributes.parsed.traits.name}}\"}"
-      }
-    },
-    {
       "name": "SendConnectingToAgent",
       "type": "send-message",
       "transitions": [
         {
-          "next": "split_1",
+          "next": "FlexTransfer",
           "event": "sent"
         },
         {
@@ -300,7 +280,7 @@
       ],
       "properties": {
         "offset": {
-          "x": 470,
+          "x": 820,
           "y": 1150
         },
         "service": "{{trigger.message.InstanceSid}}",
@@ -312,79 +292,11 @@
       }
     },
     {
-      "name": "split_1",
-      "type": "split-based-on",
-      "transitions": [
-        {
-          "event": "noMatch"
-        },
-        {
-          "next": "SMStoFlex",
-          "event": "match",
-          "conditions": [
-            {
-              "friendly_name": "SMS",
-              "arguments": [
-                "{{trigger.conversation.Source}}"
-              ],
-              "type": "equal_to",
-              "value": "SMS"
-            }
-          ]
-        },
-        {
-          "next": "WebChatToFlex",
-          "event": "match",
-          "conditions": [
-            {
-              "friendly_name": "WebChat",
-              "arguments": [
-                "{{trigger.conversation.Source}}"
-              ],
-              "type": "equal_to",
-              "value": "API"
-            }
-          ]
-        }
-      ],
-      "properties": {
-        "input": "{{trigger.conversation.Source}}",
-        "offset": {
-          "x": 830,
-          "y": 1360
-        }
-      }
-    },
-    {
-      "name": "WebChatToFlex",
-      "type": "send-to-flex",
-      "transitions": [
-        {
-          "event": "callComplete"
-        },
-        {
-          "event": "failedToEnqueue"
-        },
-        {
-          "event": "callFailure"
-        }
-      ],
-      "properties": {
-        "offset": {
-          "x": 1210,
-          "y": 1650
-        },
-        "workflow": "WW53bc0c70ccdb58e4bad316aec26cb332",
-        "channel": "TC55805adbcd3c3538787db2804e5dc72e",
-        "attributes": "{\"from\": \"{{trigger.conversation.ChannelAttributes.pre_engagement_data.friendlyName}}\", \"accident\": true}"
-      }
-    },
-    {
       "name": "UpdateConvoParticipantAttributes",
       "type": "run-function",
       "transitions": [
         {
-          "next": "SetUtteranceVariable",
+          "next": "getSegmentEvents",
           "event": "success"
         },
         {
@@ -395,8 +307,8 @@
         "service_sid": "ZSc790e8cc3de476372a17143589da0925",
         "environment_sid": "ZE37896d50731ce7155a3f23213041c413",
         "offset": {
-          "x": 200,
-          "y": -120
+          "x": -130,
+          "y": -700
         },
         "function_sid": "ZHc5ca9635121c78dfac7d1ab1395bb709",
         "parameters": [
@@ -407,6 +319,18 @@
           {
             "value": "{{flow.channel.address}}",
             "key": "conversationSid"
+          },
+          {
+            "value": "{{trigger.conversation.ChannelAttributes.pre_engagement_data.email}}",
+            "key": "email"
+          },
+          {
+            "value": "{{widgets.AgentRoutingLookup.parsed.twilioNumber}}",
+            "key": "twilioNumber"
+          },
+          {
+            "value": "{{trigger.conversation.ParticipantSid}}",
+            "key": "participantSid"
           }
         ],
         "url": ""
@@ -473,8 +397,8 @@
       ],
       "properties": {
         "offset": {
-          "x": -820,
-          "y": 600
+          "x": -800,
+          "y": 590
         },
         "service": "{{trigger.message.InstanceSid}}",
         "channel": "{{trigger.message.ChannelSid}}",
@@ -510,8 +434,8 @@
       "properties": {
         "input": "{{widgets.DialogflowDetectIntent.parsed.hasPayload}}",
         "offset": {
-          "x": -1370,
-          "y": 600
+          "x": -1390,
+          "y": 580
         }
       }
     },
@@ -535,6 +459,361 @@
           "x": -310,
           "y": 590
         }
+      }
+    },
+    {
+      "name": "SetInitialVariables",
+      "type": "set-variables",
+      "transitions": [
+        {
+          "next": "SetUtteranceVariable",
+          "event": "next"
+        }
+      ],
+      "properties": {
+        "variables": [
+          {
+            "value": "{{widgets.UpdateConvoParticipantAttributes.parsed.traits.firstName}}",
+            "key": "firstName"
+          },
+          {
+            "value": "{{widgets.UpdateConvoParticipantAttributes.parsed.traits.lastName}}",
+            "key": "lastName"
+          },
+          {
+            "value": "{{widgets.UpdateConvoParticipantAttributes.parsed.traits.fullName}}",
+            "key": "fullName"
+          },
+          {
+            "value": "{{widgets.UpdateConvoParticipantAttributes.parsed.traits.email}}",
+            "key": "email"
+          },
+          {
+            "value": "{{widgets.UpdateConvoParticipantAttributes.parsed.traits.phone}}",
+            "key": "phone"
+          },
+          {
+            "value": "{{widgets.UpdateConvoParticipantAttributes.parsed.traits.yearsLoyalty}}",
+            "key": "yearsLoyalty"
+          },
+          {
+            "value": "{{widgets.UpdateConvoParticipantAttributes.parsed.traits.lifetimePurchaseValue}}",
+            "key": "lifetimePurchaseValue"
+          },
+          {
+            "value": "{{widgets.UpdateConvoParticipantAttributes.parsed.traits.engagementFrequency}}",
+            "key": "engagementFrequency"
+          },
+          {
+            "value": "{{widgets.UpdateConvoParticipantAttributes.parsed.traits.referralCount}}",
+            "key": "referralCount"
+          },
+          {
+            "value": "{{widgets.UpdateConvoParticipantAttributes.parsed.traits.daysSinceLastPurchase}}",
+            "key": "daysSinceLastPurchase"
+          },
+          {
+            "value": "{{widgets.UpdateConvoParticipantAttributes.parsed.traits.gender}}",
+            "key": "gender"
+          },
+          {
+            "value": "{{widgets.UpdateConvoParticipantAttributes.parsed.traits.age}}",
+            "key": "age"
+          },
+          {
+            "value": "{{widgets.UpdateConvoParticipantAttributes.parsed.traits.address.street}}",
+            "key": "street"
+          },
+          {
+            "value": "{{widgets.UpdateConvoParticipantAttributes.parsed.traits.address.city}}",
+            "key": "city"
+          },
+          {
+            "value": "{{widgets.UpdateConvoParticipantAttributes.parsed.traits.address.state}}",
+            "key": "state"
+          },
+          {
+            "value": "{{widgets.UpdateConvoParticipantAttributes.parsed.traits.address.zip}}",
+            "key": "zip"
+          },
+          {
+            "value": "{{widgets.UpdateConvoParticipantAttributes.parsed.traits.address.country}}",
+            "key": "country"
+          }
+        ],
+        "offset": {
+          "x": 290,
+          "y": -40
+        }
+      }
+    },
+    {
+      "name": "FlexTransfer",
+      "type": "send-to-flex",
+      "transitions": [
+        {
+          "event": "callComplete"
+        },
+        {
+          "event": "failedToEnqueue"
+        },
+        {
+          "event": "callFailure"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 860,
+          "y": 1500
+        },
+        "workflow": "WWd73a78a304300bf06ce6e904b293b38e",
+        "channel": "TC5f983591fcff3dcb88e1a1e9e21344f7",
+        "attributes": "{\n\"intent\":\"{{widgets.DialogflowDetectIntent.parsed.match.intent.displayName}}\", \n\"events\": {{widgets.getSegmentEvents.body | to_json}}, \n\"emailAddress\" : \"{{flow.variables.email}}\",\n\"targetWorkerSid\": \"{{flow.variables.targetWorkerSid}}\",\n\"from\": \"{{flow.variables.from}}\", \n\"customerName\": \"{{flow.variables.customerName}}\", \n\"identity\": \"{{trigger.conversation.From}}\", \n\"conversations\" : {\n    \"content\": \" {{flow.variables.utterance}} \",\n   \"ivr_path\":\"Digital Channels DF CX EC2023\",\n    \"ivr_time\":0\n    },\n\"customers\" : {\n\"age\":\"{{flow.variables.age}}\",\n\"yearsLoyalty\":\"{{flow.variables.yearsLoyalty}}\",\n\"daysSinceLastPurchase\":\"{{flow.variables.daysSinceLastPurchase}}\",\n\"engagementFrequency\":\"{{flow.variables.engagementFrequency}}\",\n\"referralCount\":\"{{flow.variables.referralCount}}\",\n    \"name\": \"{{flow.variables.fullName}}\",\n    \"phone\":\"{{flow.variables.phone}}\",\n    \"category\": \"{{flow.variables.customerPriority}}\",\n    \"external_id\": \"{{flow.variables.email}}\",\n    \"customer_attribute_1\": \"{{flow.variables.email}}\",\n    \"email\": \"{{widgets.UpdateConvoParticipantAttributes.parsed.traits.email}}\",\n    \"gender\":\"{{flow.variables.gender}}\",\n    \"zip\":\"{{flow.variables.zip}}\",\n    \"business_value\":\"{{flow.variables.lifetimePurchaseValue}}\"\n    } \n}"
+      }
+    },
+    {
+      "name": "SplitSource",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "event": "noMatch"
+        },
+        {
+          "next": "SetSmsVariables",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "SMS",
+              "arguments": [
+                "{{trigger.conversation.Source}}"
+              ],
+              "type": "equal_to",
+              "value": "SMS"
+            }
+          ]
+        },
+        {
+          "next": "SetWebChatVariables",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "WebChat",
+              "arguments": [
+                "{{trigger.conversation.Source}}"
+              ],
+              "type": "equal_to",
+              "value": "API"
+            }
+          ]
+        },
+        {
+          "next": "SetWebChatVariables",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "SDK",
+              "arguments": [
+                "{{trigger.conversation.Source}}"
+              ],
+              "type": "equal_to",
+              "value": "SDK"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{trigger.conversation.Source}}",
+        "offset": {
+          "x": 0,
+          "y": -370
+        }
+      }
+    },
+    {
+      "name": "SetWebChatVariables",
+      "type": "set-variables",
+      "transitions": [
+        {
+          "next": "SetInitialVariables",
+          "event": "next"
+        }
+      ],
+      "properties": {
+        "variables": [
+          {
+            "value": "{{trigger.conversation.ChannelAttributes.pre_engagement_data.friendlyName}}",
+            "key": "from"
+          },
+          {
+            "value": "{{trigger.conversation.ChannelAttributes.pre_engagement_data.friendlyName}}",
+            "key": "customerName"
+          },
+          {
+            "value": "{{trigger.conversation.ChannelAttributes.pre_engagement_data.targetWorkerSid}}",
+            "key": "targetWorkerSid"
+          }
+        ],
+        "offset": {
+          "x": 740,
+          "y": -250
+        }
+      }
+    },
+    {
+      "name": "SetSmsVariables",
+      "type": "set-variables",
+      "transitions": [
+        {
+          "next": "SetInitialVariables",
+          "event": "next"
+        }
+      ],
+      "properties": {
+        "variables": [
+          {
+            "value": "{{widgets.UpdateConvoParticipantAttributes.parsed.traits.name}}",
+            "key": "from"
+          },
+          {
+            "value": "{{widgets.UpdateConvoParticipantAttributes.parsed.traits.name}}",
+            "key": "customerName"
+          },
+          {
+            "value": "{{widgets.AgentRoutingLookup.parsed.targetWorkerSid}}",
+            "key": "targetWorkerSid"
+          }
+        ],
+        "offset": {
+          "x": -340,
+          "y": -80
+        }
+      }
+    },
+    {
+      "name": "AgentRoutingLookup",
+      "type": "run-function",
+      "transitions": [
+        {
+          "next": "UpdateConvoParticipantAttributes",
+          "event": "success"
+        },
+        {
+          "event": "fail"
+        }
+      ],
+      "properties": {
+        "service_sid": "ZS898784636fc70ee83e52bbbd46abc081",
+        "environment_sid": "ZE7c14963e21ca09e9fcbf288dab80ba78",
+        "offset": {
+          "x": -610,
+          "y": -880
+        },
+        "function_sid": "ZH58ebeec1bc35edf6e716b7a5cf9f68cb",
+        "parameters": [
+          {
+            "value": "{{trigger.conversation.From}}",
+            "key": "From"
+          },
+          {
+            "value": "{{trigger.conversation.body}}",
+            "key": "ConversationBody"
+          },
+          {
+            "value": "{{trigger.conversation.Source}}",
+            "key": "ChannelSource"
+          },
+          {
+            "value": "{{trigger.conversation.ConversationSid}}",
+            "key": "conversationSid"
+          },
+          {
+            "value": "{{trigger.conversation.ParticipantSid}}",
+            "key": "participantSid"
+          },
+          {
+            "value": "+13605645822",
+            "key": "segmentMsgSvcNumber"
+          }
+        ],
+        "url": ""
+      }
+    },
+    {
+      "name": "SplitSource2",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "AgentRoutingLookup",
+          "event": "noMatch"
+        },
+        {
+          "next": "UpdateConvoParticipantAttributes",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "API",
+              "arguments": [
+                "{{trigger.conversation.Source}}"
+              ],
+              "type": "equal_to",
+              "value": "API"
+            }
+          ]
+        },
+        {
+          "next": "UpdateConvoParticipantAttributes",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "SDK",
+              "arguments": [
+                "{{trigger.conversation.Source}}"
+              ],
+              "type": "equal_to",
+              "value": "SDK"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{trigger.conversation.Source}}",
+        "offset": {
+          "x": 90,
+          "y": -1050
+        }
+      }
+    },
+    {
+      "name": "getSegmentEvents",
+      "type": "run-function",
+      "transitions": [
+        {
+          "next": "SplitSource",
+          "event": "success"
+        },
+        {
+          "event": "fail"
+        }
+      ],
+      "properties": {
+        "service_sid": "ZSc790e8cc3de476372a17143589da0925",
+        "environment_sid": "ZE37896d50731ce7155a3f23213041c413",
+        "offset": {
+          "x": 500,
+          "y": -650
+        },
+        "function_sid": "ZHe744e02854d958478ad3a1c599b523ad",
+        "parameters": [
+          {
+            "value": "{{widgets.UpdateConvoParticipantAttributes.parsed.traits.email}}",
+            "key": "email"
+          },
+          {
+            "value": "{{widgets.AgentRoutingLookup.parsed.twilioNumber}}",
+            "key": "twilioNumber"
+          }
+        ],
+        "url": ""
       }
     }
   ],
