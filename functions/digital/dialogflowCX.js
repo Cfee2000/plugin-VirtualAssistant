@@ -3,6 +3,7 @@ const { SessionsClient } = require("@google-cloud/dialogflow-cx");
 exports.handler = async function (context, event, callback) {
 	try {
 		const originalJSON = JSON.parse(event.customerData);
+
 		const newJSON = {
 			fields: {
 				firstName: {
@@ -59,6 +60,48 @@ exports.handler = async function (context, event, callback) {
 				},
 			},
 		};
+
+		if (event.customerEvents) {
+			console.log("Customer Events EXIST");
+			const customerEvents = JSON.parse(event.customerEvents);
+			const eventsArray = customerEvents.events; // Access the events array directly
+			console.log("EVENTS ARRAY");
+			console.log(eventsArray);
+
+			if (eventsArray.length > 0) {
+				const customerEvent = eventsArray[0];
+				console.log("Customer Event Name");
+				console.log(customerEvent.event);
+				console.log("Customer Event Properties");
+				console.log(customerEvent.properties);
+				const eventType = customerEvent.event.replace(/\s+/g, "").toLowerCase();
+				const properties = customerEvent.properties;
+
+				if (["checkoutstarted", "orderplaced"].includes(eventType)) {
+					console.log("PRODUCTS 0 TEST");
+					console.log(properties.products["0"]);
+
+					const product = properties.products["0"];
+					newJSON.fields["qualifying_product"] = {
+						kind: "stringValue",
+						stringValue: product.product_name,
+					};
+					newJSON.fields["qualifying_product_price"] = {
+						kind: "stringValue",
+						stringValue: product.product_price,
+					};
+				} else if (["productviewed", "productadded"].includes(eventType)) {
+					newJSON.fields["qualifying_product"] = {
+						kind: "stringValue",
+						stringValue: properties.product_name,
+					};
+					newJSON.fields["qualifying_product_price"] = {
+						kind: "stringValue",
+						stringValue: properties.product_price,
+					};
+				}
+			}
+		}
 
 		let dialogflowChannel = "";
 		let keyValue = "";
@@ -171,7 +214,7 @@ exports.handler = async function (context, event, callback) {
 						})
 					),
 					type: message.payload.fields.type.stringValue,
-				};				
+				};
 			}
 			if (message.liveAgentHandoff) {
 				payload.liveAgentHandoff = message.liveAgentHandoff;
@@ -203,9 +246,9 @@ exports.handler = async function (context, event, callback) {
 		console.log("Payload");
 		console.log(payload);
 
-    const twilioResponse = new Twilio.Response();
-	twilioResponse.setBody(JSON.stringify(payload));
-    callback(null, payload);
+		const twilioResponse = new Twilio.Response();
+		twilioResponse.setBody(JSON.stringify(payload));
+		callback(null, payload);
 	} catch (error) {
 		console.error(error);
 		callback(error);
