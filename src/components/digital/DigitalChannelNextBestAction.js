@@ -192,8 +192,8 @@ const DigitalChannelNextBestAction = (props) => {
 					},
 					body: JSON.stringify({
 						messages: convertedTranscript,
-						temperature: 0.6,
-						model: "gpt-3.5-turbo",
+						temperature: 0.1,
+						model: "gpt-3.5-turbo-0613",
 					}),
 				}
 			);
@@ -240,7 +240,7 @@ const DigitalChannelNextBestAction = (props) => {
 						body: JSON.stringify({
 							messages: convertedTranscript,
 							temperature: 0.6,
-							model: "gpt-3.5-turbo",
+							model: "gpt-3.5-turbo-0613",
 						}),
 					}
 				);
@@ -330,7 +330,7 @@ const DigitalChannelNextBestAction = (props) => {
 		);
 
 		if (!response.ok) {
-			throw new Error(`Failed to fetch voice call summary: ${response.status}`);
+			throw new Error(`Failed to fetch conversation summary: ${response.status}`);
 		}
 
 		return response;
